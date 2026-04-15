@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 import pandas as pd
 import streamlit as st
@@ -107,27 +107,160 @@ def compute_dashboard_metrics(audits: list[dict]) -> dict[str, str]:
     if not audits:
         return {
             "total": "0",
+            "ultimos30": "0",
             "cierre": "-",
             "promedio": "-",
+            "mediana": "-",
+            "desviacion": "-",
+            "brecha": "-",
             "empresas": "-",
             "riesgo": "0",
             "backlog": "0",
+            "completitud": "-",
+            "concentracion": "-",
+            "top_empresa": "-",
+            "semaforo_cierre": "Sin datos",
+            "semaforo_score": "Sin datos",
+            "semaforo_riesgo": "Sin datos",
+            "semaforo_cobertura": "Sin datos",
         }
     df = pd.DataFrame(audits)
+    now = pd.Timestamp.utcnow()
+    fechas = pd.to_datetime(df["fecha_realizacion"], errors="coerce", utc=True)
     total = len(df)
+    ultimos30 = int(((now - fechas).dt.total_seconds() <= 30 * 24 * 60 * 60) .fillna(False).sum())
     cierre = f"{((df['estado'] == 'completada').sum() / total) * 100:.1f}%"
-    promedio = fmt_percent(df["score_final"].fillna(0).mean())
+    scores = pd.to_numeric(df["score_final"], errors="coerce")
+    con_score = scores.dropna()
+    promedio_raw = con_score.mean() if not con_score.empty else None
+    promedio = fmt_percent(promedio_raw) if promedio_raw is not None else "-"
+    mediana_raw = con_score.median() if not con_score.empty else None
+    mediana = fmt_percent(mediana_raw) if mediana_raw is not None else "-"
+    desviacion = f"{(con_score.std(ddof=0) * 100):.2f} pp" if not con_score.empty else "-"
+    brecha = f"{((con_score.max() - con_score.min()) * 100):.2f} pp" if not con_score.empty else "-"
     empresas = str(df["empresa"].fillna("-").nunique())
-    riesgo = str((df["score_final"].fillna(0) < 0.65).sum())
-    backlog = str(((df["estado"] == "en_progreso") & (df["score_final"].fillna(0) < 0.65)).sum())
+    riesgo_count = int(((scores < 0.65) | df["calificacion"].fillna("").astype(str).str.upper().str.contains("INS|NAD")).fillna(False).sum())
+    riesgo = str(riesgo_count)
+    antiguedad = (now - fechas).dt.total_seconds().fillna(31 * 24 * 60 * 60)
+    backlog_count = int(((df["estado"] == "en_progreso") & ((scores < 0.65) | scores.isna()) & (antiguedad > 30 * 24 * 60 * 60)).sum())
+    backlog = str(backlog_count)
+    completitud_raw = (con_score.shape[0] / total) if total else None
+    completitud = f"{(completitud_raw * 100):.1f}%" if completitud_raw is not None else "-"
+    empresa_counts = df["empresa"].fillna("Sin empresa").astype(str).value_counts()
+    top_empresa = empresa_counts.index[0] if not empresa_counts.empty else "-"
+    concentracion = f"{((empresa_counts.iloc[0] / total) * 100):.1f}%" if not empresa_counts.empty else "-"
+
+    cierre_raw = ((df["estado"] == "completada").sum() / total) if total else None
+    cobertura_raw = (df["empresa"].fillna("").astype(str).replace("", pd.NA).dropna().nunique() / len(get_config()["empresas"])) if len(get_config()["empresas"]) else None
+    riesgo_raw = (riesgo_count / total) if total else None
+
+    def semaforo(value: float | None, ok: float, neutral: float, inverse: bool = False) -> str:
+        if value is None:
+            return "Sin datos"
+        if inverse:
+            if value <= ok:
+                return "Verde"
+            if value <= neutral:
+                return "Amarillo"
+            return "Rojo"
+        if value >= ok:
+            return "Verde"
+        if value >= neutral:
+            return "Amarillo"
+        return "Rojo"
+
     return {
         "total": str(total),
+        "ultimos30": str(ultimos30),
         "cierre": cierre,
         "promedio": promedio,
+        "mediana": mediana,
+        "desviacion": desviacion,
+        "brecha": brecha,
         "empresas": empresas,
         "riesgo": riesgo,
         "backlog": backlog,
+        "completitud": completitud,
+        "concentracion": concentracion,
+        "top_empresa": top_empresa,
+        "semaforo_cierre": semaforo(cierre_raw, 0.70, 0.40),
+        "semaforo_score": semaforo(promedio_raw, 0.85, 0.70),
+        "semaforo_riesgo": semaforo(riesgo_raw, 0.10, 0.25, inverse=True),
+        "semaforo_cobertura": semaforo(cobertura_raw, 0.90, 0.70),
     }
+
+
+def build_report_payload(audit: dict) -> dict:
+    controles = [item for item in audit.get("controles", []) if item.get("modulo_numero") in MODULOS_ACTIVOS]
+    return {
+        "auditoria": {
+            "id": audit.get("id"),
+            "codigo": audit.get("codigo"),
+            "auditor": audit.get("auditor_nombre") or audit.get("auditor_id"),
+            "empresa": audit.get("empresa"),
+            "sucursal": audit.get("sucursal"),
+            "fecha_realizacion": audit.get("fecha_realizacion"),
+            "estado": audit.get("estado"),
+            "score_final": audit.get("score_final"),
+            "calificacion": audit.get("calificacion"),
+        },
+        "indicadores": [
+            {
+                "numero": control.get("modulo_numero"),
+                "nombre": control.get("modulo_nombre"),
+                "etapa": control.get("etapa"),
+                "ponderacion": control.get("ponderacion"),
+                "score_cumplimiento": control.get("score_cumplimiento"),
+                "resultado_final": control.get("resultado_final"),
+                "total_items": control.get("total_items"),
+                "items_observacion": control.get("items_observacion"),
+            }
+            for control in controles
+        ],
+        "hallazgos": parse_json_list(audit.get("hallazgos")),
+        "recomendaciones": parse_json_list(audit.get("recomendaciones")),
+        "fecha_exportacion": datetime.utcnow().isoformat() + "Z",
+    }
+
+
+def build_report_html(audit: dict) -> str:
+    payload = build_report_payload(audit)
+    auditoria = payload["auditoria"]
+    rows = "".join(
+        f"<tr><td>{item['nombre']}</td><td>{item['etapa'] or '-'}</td><td>{fmt_percent(item['ponderacion'])}</td><td>{fmt_percent(item['score_cumplimiento'])}</td><td>{fmt_percent(item['resultado_final'])}</td></tr>"
+        for item in payload["indicadores"]
+    )
+    return f"""
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Informe - {auditoria['codigo']}</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; color: #1f2937; margin: 40px; }}
+    h1 {{ color: #1e3a8a; }}
+    table {{ width: 100%; border-collapse: collapse; margin-top: 16px; }}
+    th, td {{ border: 1px solid #d1d5db; padding: 8px; text-align: left; }}
+    th {{ background: #eff6ff; }}
+  </style>
+</head>
+<body>
+  <h1>Control Integral de Deposito</h1>
+  <p><strong>Auditoria:</strong> {auditoria['codigo']}</p>
+  <p><strong>Empresa:</strong> {auditoria.get('empresa') or '-'}</p>
+  <p><strong>Sucursal:</strong> {auditoria.get('sucursal') or '-'}</p>
+  <p><strong>Auditor:</strong> {auditoria.get('auditor') or '-'}</p>
+  <p><strong>Score:</strong> {fmt_percent(auditoria.get('score_final'))}</p>
+  <p><strong>Calificacion:</strong> {auditoria.get('calificacion') or '-'}</p>
+  <table>
+    <thead>
+      <tr><th>Modulo</th><th>Etapa</th><th>Ponderacion</th><th>% Cumplimiento</th><th>Resultado</th></tr>
+    </thead>
+    <tbody>{rows}</tbody>
+  </table>
+</body>
+</html>
+    """.strip()
 
 
 def render_sidebar(audits: list[dict]) -> None:
@@ -175,20 +308,40 @@ def render_dashboard(audits: list[dict]) -> None:
     st.markdown('<div class="section-title">Estado General</div>', unsafe_allow_html=True)
     st.markdown('<div class="section-copy">Vista ejecutiva con indicadores principales del sistema.</div>', unsafe_allow_html=True)
     metrics = compute_dashboard_metrics(audits)
-    cols = st.columns(3)
+    cols = st.columns(4)
     with cols[0]:
         metric_card("Auditorias Totales", metrics["total"], "Base historica del tablero")
     with cols[1]:
+        metric_card("Ultimos 30 dias", metrics["ultimos30"], "Ritmo reciente de gestion")
+    with cols[2]:
         metric_card("% Cierre", metrics["cierre"], "Completadas sobre total")
-    with cols[2]:
+    with cols[3]:
         metric_card("Score Promedio", metrics["promedio"], "Rendimiento global ponderado")
-    cols = st.columns(3)
+    cols = st.columns(4)
     with cols[0]:
-        metric_card("Cobertura de Empresas", metrics["empresas"], "Empresas auditadas")
+        metric_card("Mediana Score", metrics["mediana"], "Comportamiento central")
     with cols[1]:
-        metric_card("Riesgo Alto", metrics["riesgo"], "Score menor a 65%")
+        metric_card("Desviacion", metrics["desviacion"], "Variabilidad entre auditorias")
     with cols[2]:
+        metric_card("Brecha", metrics["brecha"], "Mejor vs peor score")
+    with cols[3]:
+        metric_card("Cobertura de Empresas", metrics["empresas"], "Empresas auditadas")
+    cols = st.columns(4)
+    with cols[0]:
+        metric_card("Riesgo Alto", metrics["riesgo"], "Score menor a 65%")
+    with cols[1]:
         metric_card("Backlog Critico", metrics["backlog"], "En progreso con bajo score")
+    with cols[2]:
+        metric_card("Completitud Score", metrics["completitud"], "Auditorias con score")
+    with cols[3]:
+        metric_card("Concentracion Empresa", metrics["concentracion"], metrics["top_empresa"])
+
+    st.markdown("#### Semaforo ejecutivo")
+    sem_cols = st.columns(4)
+    sem_cols[0].markdown(f"**Cierre operativo:** `{metrics['semaforo_cierre']}`")
+    sem_cols[1].markdown(f"**Rendimiento global:** `{metrics['semaforo_score']}`")
+    sem_cols[2].markdown(f"**Exposicion a riesgo:** `{metrics['semaforo_riesgo']}`")
+    sem_cols[3].markdown(f"**Cobertura corporativa:** `{metrics['semaforo_cobertura']}`")
 
     if audits:
         df = pd.DataFrame(audits)
@@ -295,6 +448,29 @@ def render_informes() -> None:
     visible = df[["codigo", "empresa", "sucursal", "auditor_nombre", "fecha_cierre", "score_final", "calificacion"]].copy()
     visible["score_final"] = visible["score_final"].map(fmt_percent)
     st.dataframe(visible, use_container_width=True, hide_index=True)
+
+    options = {f"{item['codigo']} | {item.get('empresa', '-')} | {item.get('sucursal', '-')}": item["id"] for item in reports}
+    selected = st.selectbox("Informe seleccionado", list(options.keys()), key="report_select")
+    audit = get_audit(options[selected])
+    payload = build_report_payload(audit)
+    html_report = build_report_html(audit)
+    import json
+
+    col1, col2 = st.columns(2)
+    col1.download_button(
+        "Descargar JSON",
+        data=json.dumps(payload, indent=2, ensure_ascii=False),
+        file_name=f"Informe_{audit['codigo']}.json",
+        mime="application/json",
+        use_container_width=True,
+    )
+    col2.download_button(
+        "Descargar HTML",
+        data=html_report,
+        file_name=f"Informe_{audit['codigo']}.html",
+        mime="text/html",
+        use_container_width=True,
+    )
 
 
 def render_manual_modules(audit: dict) -> None:
@@ -564,6 +740,26 @@ def render_operacion(audits: list[dict]) -> None:
     controles_df["score_cumplimiento"] = controles_df["score_cumplimiento"].map(fmt_percent)
     controles_df["resultado_final"] = controles_df["resultado_final"].map(fmt_percent)
     st.dataframe(controles_df, use_container_width=True, hide_index=True)
+
+    payload = build_report_payload(audit)
+    html_report = build_report_html(audit)
+    import json
+
+    d1, d2 = st.columns(2)
+    d1.download_button(
+        "Descargar informe JSON",
+        data=json.dumps(payload, indent=2, ensure_ascii=False),
+        file_name=f"Informe_{audit['codigo']}.json",
+        mime="application/json",
+        use_container_width=True,
+    )
+    d2.download_button(
+        "Descargar informe HTML",
+        data=html_report,
+        file_name=f"Informe_{audit['codigo']}.html",
+        mime="text/html",
+        use_container_width=True,
+    )
 
     render_transfer_section(audit, 1)
     render_creditos_section(audit)
