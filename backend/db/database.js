@@ -1,10 +1,17 @@
 import sqlite3 from 'sqlite3';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve, isAbsolute } from 'path';
+import { mkdirSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const dbPath = join(__dirname, 'auditorias.db');
+const defaultDbPath = join(__dirname, 'auditorias.db');
+const configuredDbPath = String(process.env.SQLITE_DB_PATH || '').trim();
+const dbPath = configuredDbPath
+  ? (isAbsolute(configuredDbPath) ? configuredDbPath : resolve(process.cwd(), configuredDbPath))
+  : defaultDbPath;
+
+mkdirSync(dirname(dbPath), { recursive: true });
 
 export const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
