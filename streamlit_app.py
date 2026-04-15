@@ -55,6 +55,19 @@ def inject_styles() -> None:
             padding-top: 1.2rem;
         }
         [data-testid="stSidebar"] * { color: #eef4ff; }
+        .sidebar-brand h2 {
+            color:#ffffff;
+            font-size:27px;
+            font-weight:800;
+            letter-spacing:.01em;
+            margin:0;
+        }
+        .sidebar-brand p {
+            color:#c7d3f8;
+            margin:6px 0 0 0;
+            font-size:13px;
+            opacity:.95;
+        }
         [data-testid="stSidebar"] h2 {
             font-size: 30px;
             font-weight: 800;
@@ -71,47 +84,6 @@ def inject_styles() -> None:
             letter-spacing: .08em;
             font-weight: 700;
         }
-        [data-testid="stSidebar"] [role="radiogroup"] {
-            display:flex;
-            flex-direction:column;
-            gap:10px;
-        }
-        [data-testid="stSidebar"] [role="radiogroup"] label {
-            margin:0 !important;
-            padding:0 !important;
-            background:none !important;
-            border:none !important;
-        }
-        [data-testid="stSidebar"] [role="radiogroup"] label > div {
-            width:100%;
-            min-height:48px;
-            display:flex;
-            align-items:center;
-            gap:10px;
-            border-radius:12px;
-            border:1px solid rgba(255,255,255,0.18);
-            background:rgba(255,255,255,0.05);
-            padding:0 14px;
-            transition:all .18s ease;
-        }
-        [data-testid="stSidebar"] [role="radiogroup"] label > div:hover {
-            background:rgba(255,255,255,0.12);
-            border-color:rgba(199,210,254,.75);
-        }
-        [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) > div {
-            background:linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-            border-color:#a5b4fc;
-            box-shadow:0 6px 16px rgba(79,70,229,.28);
-        }
-        [data-testid="stSidebar"] [role="radiogroup"] label p {
-            color:#ecf1ff !important;
-            font-size:15px !important;
-            font-weight:700 !important;
-        }
-        [data-testid="stSidebar"] [role="radiogroup"] label input {
-            accent-color:#fb7185;
-            transform:scale(1.05);
-        }
         [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] > div {
             background: rgba(255,255,255,0.08);
             border: 1px solid rgba(199, 210, 254, 0.35);
@@ -125,6 +97,21 @@ def inject_styles() -> None:
             letter-spacing:.08em;
             font-weight:800;
             margin:18px 0 10px;
+        }
+        .sidebar-nav-active {
+            width:100%;
+            min-height:46px;
+            display:flex;
+            align-items:center;
+            border-radius:12px;
+            border:1px solid #a5b4fc;
+            background:linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color:#ffffff;
+            font-size:15px;
+            font-weight:700;
+            padding:0 14px;
+            box-shadow:0 6px 16px rgba(79,70,229,.28);
+            margin-bottom:10px;
         }
         [data-testid="stSidebar"] .stButton > button {
             width:100%;
@@ -338,6 +325,14 @@ def inject_styles() -> None:
             border-radius: 12px;
             padding: 10px 12px;
             border: 1px solid rgba(255,255,255,.12);
+        }
+        .sidebar-footer {
+            margin-top: 14px;
+            border-top: 1px dashed rgba(185, 199, 234, 0.35);
+            padding-top: 12px;
+            display:flex;
+            flex-direction:column;
+            gap:10px;
         }
         .sidebar-session-label {
             font-size:12px;
@@ -690,19 +685,28 @@ def build_report_html(audit: dict) -> str:
 
 def render_sidebar(audits: list[dict]) -> None:
     with st.sidebar:
-        st.markdown("## Control Integral")
-        st.caption("Grupo Cenoa")
+        st.markdown(
+            """
+            <div class="sidebar-brand">
+                <h2>Control Integral</h2>
+                <p>Grupo Cenoa</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div class="sidebar-group-title">Auditor activo</div>', unsafe_allow_html=True)
         st.selectbox("Auditor activo", AUDITORES_DEFAULT, key="auditor_nombre")
         st.markdown('<div class="sidebar-group-title">Secciones</div>', unsafe_allow_html=True)
-        st.session_state["section"] = st.radio(
-            "Secciones",
-            ["Dashboard", "Nueva Auditoria", "Configuracion", "Auditorias", "Informes", "Operacion"],
-            index=["Dashboard", "Nueva Auditoria", "Configuracion", "Auditorias", "Informes", "Operacion"].index(
-                st.session_state["section"]
-            ),
-            label_visibility="collapsed",
-        )
+        sections = ["Dashboard", "Nueva Auditoria", "Configuracion", "Auditorias", "Informes", "Operacion"]
+        for section in sections:
+            if st.session_state["section"] == section:
+                st.markdown(f'<div class="sidebar-nav-active">{html.escape(section)}</div>', unsafe_allow_html=True)
+            else:
+                if st.button(section, key=f"nav_{section}", use_container_width=True):
+                    st.session_state["section"] = section
+                    st.rerun()
         if audits:
+            st.markdown('<div class="sidebar-group-title">Auditoria activa</div>', unsafe_allow_html=True)
             options = {
                 f"{item['codigo']} | {item.get('empresa', '-')} | {item.get('sucursal', '-')}": item["id"]
                 for item in audits
@@ -719,10 +723,12 @@ def render_sidebar(audits: list[dict]) -> None:
             selected_label = "Sin auditoria activa"
         st.markdown(
             f"""
-            <div class="sidebar-session">
-                <div class="sidebar-session-label">Sesion</div>
-                <div class="sidebar-session-name">{html.escape(pretty_text(st.session_state['auditor_nombre']))}</div>
-                <div class="sidebar-audit">{html.escape(pretty_text(selected_label, default='Sin auditoria activa'))}</div>
+            <div class="sidebar-footer">
+                <div class="sidebar-session">
+                    <div class="sidebar-session-label">Sesion</div>
+                    <div class="sidebar-session-name">{html.escape(pretty_text(st.session_state['auditor_nombre']))}</div>
+                    <div class="sidebar-audit">{html.escape(pretty_text(selected_label, default='Sin auditoria activa'))}</div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
