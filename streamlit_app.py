@@ -133,6 +133,63 @@ def inject_styles() -> None:
             border: 1px solid #dbe4f2;
             background: white;
         }
+        div[data-testid="stDataFrame"] [data-testid="stTable"] thead tr th,
+        div[data-testid="stDataEditor"] [data-testid="stTable"] thead tr th {
+            background: linear-gradient(180deg,#f8fbff 0%,#eef4ff 100%) !important;
+            color: #334155 !important;
+            font-size: 12px !important;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            font-weight: 800 !important;
+            border-bottom: 1px solid #dbe4f2 !important;
+        }
+        div[data-testid="stDataFrame"] [data-testid="stTable"] tbody tr:nth-child(even),
+        div[data-testid="stDataEditor"] [data-testid="stTable"] tbody tr:nth-child(even) {
+            background: #fbfdff !important;
+        }
+        div[data-testid="stDataFrame"] [data-testid="stTable"] tbody tr:hover,
+        div[data-testid="stDataEditor"] [data-testid="stTable"] tbody tr:hover {
+            background: #f5f8ff !important;
+        }
+        div[data-testid="stDataEditor"] {
+            border-radius: 14px !important;
+            overflow: hidden;
+            border: 1px solid #dbe4f2;
+            box-shadow: 0 6px 18px rgba(15,23,42,.05);
+            background: white;
+        }
+        .mini-kpi-grid {
+            display:grid;
+            grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
+            gap:12px;
+            margin-bottom:12px;
+        }
+        .mini-kpi {
+            background:#f8fbff;
+            border:1px solid #dbe4f2;
+            border-radius:14px;
+            padding:12px 14px;
+        }
+        .mini-kpi-label {
+            font-size:11px;
+            font-weight:800;
+            color:#64748b;
+            text-transform:uppercase;
+            letter-spacing:.08em;
+        }
+        .mini-kpi-value {
+            font-size:24px;
+            font-weight:800;
+            color:#0f172a;
+            margin-top:6px;
+        }
+        .table-shell {
+            background:white;
+            border:1px solid #dbe4f2;
+            border-radius:18px;
+            padding:12px;
+            box-shadow:0 8px 20px rgba(15,23,42,.05);
+        }
         .stButton > button, .stDownloadButton > button {
             border-radius: 11px !important;
             font-weight: 700 !important;
@@ -205,6 +262,19 @@ def traffic_card(title: str, value: str, status: str) -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def mini_kpi_row(items: list[tuple[str, str]]) -> None:
+    cards = "".join(
+        f"""
+        <div class="mini-kpi">
+            <div class="mini-kpi-label">{label}</div>
+            <div class="mini-kpi-value">{value}</div>
+        </div>
+        """
+        for label, value in items
+    )
+    st.markdown(f'<div class="mini-kpi-grid">{cards}</div>', unsafe_allow_html=True)
 
 
 def compute_dashboard_metrics(audits: list[dict]) -> dict[str, str]:
@@ -554,9 +624,31 @@ def render_auditorias(audits: list[dict]) -> None:
         st.info("Todavia no hay auditorias.")
         return
     df = pd.DataFrame(audits)
+    mini_kpi_row([
+        ("Total", str(len(df))),
+        ("Completadas", str(int((df["estado"] == "completada").sum()))),
+        ("En progreso", str(int((df["estado"] == "en_progreso").sum()))),
+        ("Score promedio", fmt_percent(pd.to_numeric(df["score_final"], errors="coerce").fillna(0).mean())),
+    ])
     visible = df[["codigo", "empresa", "sucursal", "auditor_nombre", "estado", "score_final", "calificacion", "fecha_realizacion"]].copy()
     visible["score_final"] = visible["score_final"].map(fmt_percent)
-    st.dataframe(visible, use_container_width=True, hide_index=True)
+    st.markdown('<div class="table-shell">', unsafe_allow_html=True)
+    st.dataframe(
+        visible,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "codigo": st.column_config.TextColumn("Codigo", width="small"),
+            "empresa": st.column_config.TextColumn("Empresa", width="medium"),
+            "sucursal": st.column_config.TextColumn("Sucursal", width="medium"),
+            "auditor_nombre": st.column_config.TextColumn("Auditor", width="medium"),
+            "estado": st.column_config.TextColumn("Estado", width="small"),
+            "score_final": st.column_config.TextColumn("Score", width="small"),
+            "calificacion": st.column_config.TextColumn("Calificacion", width="medium"),
+            "fecha_realizacion": st.column_config.TextColumn("Fecha", width="small"),
+        },
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_informes() -> None:
@@ -567,9 +659,30 @@ def render_informes() -> None:
         st.info("No hay auditorias cerradas todavia.")
         return
     df = pd.DataFrame(reports)
+    mini_kpi_row([
+        ("Informes", str(len(df))),
+        ("Promedio", fmt_percent(pd.to_numeric(df["score_final"], errors="coerce").fillna(0).mean())),
+        ("Hallazgos", str(sum(len(parse_json_list(item)) for item in df["hallazgos"].fillna("")))),
+        ("Recomendaciones", str(sum(len(parse_json_list(item)) for item in df["recomendaciones"].fillna("")))),
+    ])
     visible = df[["codigo", "empresa", "sucursal", "auditor_nombre", "fecha_cierre", "score_final", "calificacion"]].copy()
     visible["score_final"] = visible["score_final"].map(fmt_percent)
-    st.dataframe(visible, use_container_width=True, hide_index=True)
+    st.markdown('<div class="table-shell">', unsafe_allow_html=True)
+    st.dataframe(
+        visible,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "codigo": st.column_config.TextColumn("Codigo", width="small"),
+            "empresa": st.column_config.TextColumn("Empresa", width="medium"),
+            "sucursal": st.column_config.TextColumn("Sucursal", width="medium"),
+            "auditor_nombre": st.column_config.TextColumn("Auditor", width="medium"),
+            "fecha_cierre": st.column_config.TextColumn("Cierre", width="small"),
+            "score_final": st.column_config.TextColumn("Score", width="small"),
+            "calificacion": st.column_config.TextColumn("Calificacion", width="medium"),
+        },
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
 
     options = {f"{item['codigo']} | {item.get('empresa', '-')} | {item.get('sucursal', '-')}": item["id"] for item in reports}
     selected = st.selectbox("Informe seleccionado", list(options.keys()), key="report_select")
@@ -642,11 +755,12 @@ def render_transfer_section(audit: dict, modulo: int) -> None:
         total = len(df)
         observadas = int((df["cumple_final"] == 0).sum())
         cumplen = total - observadas
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Total", str(total))
-        c2.metric("Cumplen", str(cumplen))
-        c3.metric("No cumplen", str(observadas))
-        c4.metric("% Cumplimiento", fmt_percent(cumplen / total if total else 0))
+        mini_kpi_row([
+            ("Total", str(total)),
+            ("Cumplen", str(cumplen)),
+            ("No cumplen", str(observadas)),
+            ("% Cumplimiento", fmt_percent(cumplen / total if total else 0)),
+        ])
         edited = st.data_editor(
             df,
             use_container_width=True,
@@ -654,10 +768,16 @@ def render_transfer_section(audit: dict, modulo: int) -> None:
             disabled=["id", "fecha_transferencia", "numero_comprobante", "sucursal_origen", "sucursal_destino", "dias_habiles", "cumple_base", "cumple_final"],
             key=f"transfer_editor_{modulo}",
             column_config={
+                "fecha_transferencia": st.column_config.TextColumn("Fecha", width="small"),
+                "numero_comprobante": st.column_config.TextColumn("Comprobante", width="small"),
+                "sucursal_origen": st.column_config.TextColumn("Origen", width="medium"),
+                "sucursal_destino": st.column_config.TextColumn("Destino", width="medium"),
+                "dias_habiles": st.column_config.NumberColumn("Dias", width="small"),
                 "justificado": st.column_config.CheckboxColumn(
                     "Justificado",
                     help="Solo aplica cuando la transferencia no cumple por dias habiles.",
                 ),
+                "observacion": st.column_config.TextColumn("Observacion", width="large"),
             },
         )
         if st.button("Guardar cambios", key=f"save_transfer_{modulo}"):
@@ -689,17 +809,27 @@ def render_creditos_section(audit: dict) -> None:
         total = len(df)
         observadas = int((df["cumple_final"] == 0).sum())
         cumplen = total - observadas
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Total", str(total))
-        c2.metric("Cumplen", str(cumplen))
-        c3.metric("No cumplen", str(observadas))
-        c4.metric("% Cumplimiento", fmt_percent(cumplen / total if total else 0))
+        mini_kpi_row([
+            ("Total", str(total)),
+            ("Cumplen", str(cumplen)),
+            ("No cumplen", str(observadas)),
+            ("% Cumplimiento", fmt_percent(cumplen / total if total else 0)),
+        ])
         edited = st.data_editor(
             df,
             use_container_width=True,
             hide_index=True,
             disabled=["id", "fecha", "articulo", "numero_comprobante", "sucursal_origen", "sucursal_destino", "cantidad", "importe", "cumple_final"],
             key="creditos_editor",
+            column_config={
+                "fecha": st.column_config.TextColumn("Fecha", width="small"),
+                "articulo": st.column_config.TextColumn("Articulo", width="medium"),
+                "numero_comprobante": st.column_config.TextColumn("Comprobante", width="small"),
+                "cantidad": st.column_config.NumberColumn("Cantidad", width="small", format="%.2f"),
+                "importe": st.column_config.NumberColumn("Importe", width="small", format="%.2f"),
+                "tiene_reclamo": st.column_config.CheckboxColumn("Reclamo"),
+                "observacion": st.column_config.TextColumn("Observacion", width="large"),
+            },
         )
         if st.button("Guardar cambios creditos"):
             save_creditos_edits(audit["id"], edited)
@@ -748,17 +878,30 @@ def render_ventas_section(audit: dict) -> None:
         total = len(grouped)
         observadas = int((grouped["cumple_final"] == 0).sum())
         cumplen = total - observadas
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Comprobantes en muestra", str(total))
-        c2.metric("Cumplen", str(cumplen))
-        c3.metric("No cumplen", str(observadas))
-        c4.metric("% Cumplimiento", fmt_percent(cumplen / total if total else 0))
+        mini_kpi_row([
+            ("En muestra", str(total)),
+            ("Cumplen", str(cumplen)),
+            ("No cumplen", str(observadas)),
+            ("% Cumplimiento", fmt_percent(cumplen / total if total else 0)),
+        ])
         edited = st.data_editor(
             grouped,
             use_container_width=True,
             hide_index=True,
             disabled=["id", "fecha", "tipo_comprobante", "numero_comprobante", "articulo_codigo", "articulo_descripcion", "importe", "cumple_final"],
             key="ventas_editor",
+            column_config={
+                "fecha": st.column_config.TextColumn("Fecha", width="small"),
+                "tipo_comprobante": st.column_config.TextColumn("Comprobante", width="small"),
+                "numero_comprobante": st.column_config.TextColumn("Numero", width="small"),
+                "articulo_codigo": st.column_config.TextColumn("Codigos", width="medium"),
+                "articulo_descripcion": st.column_config.TextColumn("Articulos", width="large"),
+                "importe": st.column_config.NumberColumn("Importe", width="small", format="%.2f"),
+                "firma_responsable_deposito": st.column_config.CheckboxColumn("Firma deposito"),
+                "firma_gerente_sector": st.column_config.CheckboxColumn("Firma gerente"),
+                "justificado": st.column_config.CheckboxColumn("Justificado"),
+                "observacion": st.column_config.TextColumn("Observacion", width="large"),
+            },
         )
         if st.button("Guardar cambios ventas internas"):
             save_ventas_edits(audit["id"], edited)
@@ -856,13 +999,37 @@ def render_operacion(audits: list[dict]) -> None:
     col3.metric("Calificacion", audit.get("calificacion") or "-")
     col4.metric("Auditor", audit.get("auditor_nombre") or audit.get("auditor_id") or "-")
 
+    mini_kpi_row([
+        ("Empresa", str(audit.get("empresa") or "-")),
+        ("Sucursal", str(audit.get("sucursal") or "-")),
+        ("Fecha", str(audit.get("fecha_realizacion") or "-")[:10]),
+        ("Modulos", str(len([item for item in audit["controles"] if item["modulo_numero"] in MODULOS_ACTIVOS]))),
+    ])
+
     controles_df = pd.DataFrame(audit["controles"])[
         ["modulo_numero", "modulo_nombre", "etapa", "ponderacion", "score_cumplimiento", "resultado_final", "total_items", "items_observacion"]
     ].copy()
     controles_df["ponderacion"] = controles_df["ponderacion"].map(fmt_percent)
     controles_df["score_cumplimiento"] = controles_df["score_cumplimiento"].map(fmt_percent)
     controles_df["resultado_final"] = controles_df["resultado_final"].map(fmt_percent)
-    st.dataframe(controles_df, use_container_width=True, hide_index=True)
+    st.markdown('<div class="subsection-title">Tablero de Resultados</div>', unsafe_allow_html=True)
+    st.markdown('<div class="table-shell">', unsafe_allow_html=True)
+    st.dataframe(
+        controles_df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "modulo_numero": st.column_config.NumberColumn("#", width="small"),
+            "modulo_nombre": st.column_config.TextColumn("Modulo", width="medium"),
+            "etapa": st.column_config.TextColumn("Etapa", width="small"),
+            "ponderacion": st.column_config.TextColumn("Ponderacion", width="small"),
+            "score_cumplimiento": st.column_config.TextColumn("% Cumplimiento", width="small"),
+            "resultado_final": st.column_config.TextColumn("Resultado", width="small"),
+            "total_items": st.column_config.NumberColumn("Total", width="small"),
+            "items_observacion": st.column_config.NumberColumn("Observados", width="small"),
+        },
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
 
     payload = build_report_payload(audit)
     html_report = build_report_html(audit)
