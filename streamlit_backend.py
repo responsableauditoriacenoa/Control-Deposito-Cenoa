@@ -856,9 +856,9 @@ def save_transferencias_edits(auditoria_id: str, modulo: int, edited_rows: pd.Da
     with get_connection() as conn:
         for _, row in edited_rows.iterrows():
             cumple_base = 1 if int(row.get("cumple_base", 0)) == 1 else 0
-            justificado = 1 if (not cumple_base and bool(row.get("justificado"))) else 0
+            justificado = 1 if bool(row.get("justificado")) else 0
             cumple_final = 1 if (cumple_base or justificado) else 0
-            observacion = str(row.get("observacion", "") or "").strip() if not cumple_base else ""
+            observacion = str(row.get("observacion", "") or "").strip()
             conn.execute(
                 """
                 UPDATE transferencias

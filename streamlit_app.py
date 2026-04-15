@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 import html
+import io
 
 import pandas as pd
 import streamlit as st
@@ -1353,12 +1354,16 @@ def render_ventas_section(audit: dict) -> None:
     if df.empty:
         st.caption("Sin muestra generada todavia.")
         return
+    vta_mostrador_rows = df[df["tipo_comprobante"].map(is_mostrador_sale)].copy()
+    total_comprobantes_vta_mostrador = int(vta_mostrador_rows["numero_comprobante"].fillna(vta_mostrador_rows["id"]).astype(str).nunique())
+    total_comprobantes_muestra = int(vta_mostrador_rows[vta_mostrador_rows["en_muestra"] == 1]["numero_comprobante"].fillna(vta_mostrador_rows["id"]).astype(str).nunique()) if not vta_mostrador_rows.empty else 0
     grouped = (
         df.groupby("numero_comprobante", dropna=False)
         .agg(
             id=("id", "first"),
             fecha=("fecha", "first"),
             tipo_comprobante=("tipo_comprobante", "first"),
+            imputacion_contable=("imputacion_contable", "first"),
             articulo_codigo=("articulo_codigo", lambda s: " | ".join([str(v) for v in s.fillna("") if str(v)])),
             articulo_descripcion=("articulo_descripcion", lambda s: " | ".join([str(v) for v in s.fillna("") if str(v)])),
             importe=("importe", "sum"),
@@ -1375,15 +1380,46 @@ def render_ventas_section(audit: dict) -> None:
     cumplen = total - observadas
     mini_kpi_row([
         ("En muestra", str(total)),
+        ("Cpbtes Vta. Mostrador", str(total_comprobantes_vta_mostrador)),
+        ("Cpbtes en muestra", str(total_comprobantes_muestra)),
         ("Cumplen", str(cumplen)),
         ("No cumplen", str(observadas)),
         ("% Cumplimiento", fmt_percent(cumplen / total if total else 0)),
     ])
+    export_rows = []
+    for _, row in grouped.iterrows():
+        export_rows.append(
+            {
+                "Fecha": pretty_date(row.get("fecha")),
+                "Comprobante": pretty_text(row.get("tipo_comprobante")),
+                "NumeroComprobante": pretty_text(row.get("numero_comprobante")),
+                "Articulos": pretty_text(row.get("articulo_codigo"), "") + (" / " if pretty_text(row.get("articulo_codigo"), "") and pretty_text(row.get("articulo_descripcion"), "") else "") + pretty_text(row.get("articulo_descripcion"), ""),
+                "ImputacionContable": pretty_text(row.get("imputacion_contable")),
+                "ImporteTotalComprobante": float(row.get("importe") or 0),
+                "FirmaDeposito": "Si" if bool(row.get("firma_responsable_deposito")) else "No",
+                "FirmaGerenteJefe": "Si" if bool(row.get("firma_gerente_sector")) else "No",
+                "Justificado": "Si" if bool(row.get("justificado")) else "No",
+                "Cumple": "Si cumple" if int(row.get("cumple_final", 0)) == 1 else "No cumple",
+                "Observacion": pretty_text(row.get("observacion"), ""),
+            }
+        )
+    if export_rows:
+        export_df = pd.DataFrame(export_rows)
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+            export_df.to_excel(writer, index=False, sheet_name="Muestra Ventas Internas")
+        st.download_button(
+            "Descargar muestra",
+            data=buffer.getvalue(),
+            file_name=f"muestra_ventas_internas_{audit['codigo']}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+        )
     edited = st.data_editor(
         grouped,
         use_container_width=True,
         hide_index=True,
-        disabled=["id", "fecha", "tipo_comprobante", "numero_comprobante", "articulo_codigo", "articulo_descripcion", "importe", "cumple_final"],
+        disabled=["id", "fecha", "tipo_comprobante", "numero_comprobante", "articulo_codigo", "articulo_descripcion", "imputacion_contable", "importe", "cumple_final"],
         key="ventas_editor",
         column_config={
             "fecha": st.column_config.TextColumn("Fecha", width="small"),
@@ -1391,6 +1427,7 @@ def render_ventas_section(audit: dict) -> None:
             "numero_comprobante": st.column_config.TextColumn("Numero", width="small"),
             "articulo_codigo": st.column_config.TextColumn("Codigos", width="medium"),
             "articulo_descripcion": st.column_config.TextColumn("Articulos", width="large"),
+            "imputacion_contable": st.column_config.TextColumn("Imputacion", width="medium"),
             "importe": st.column_config.NumberColumn("Importe", width="small", format="%.2f"),
             "firma_responsable_deposito": st.column_config.CheckboxColumn("Firma deposito"),
             "firma_gerente_sector": st.column_config.CheckboxColumn("Firma gerente"),
