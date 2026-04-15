@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from sqlalchemy import create_engine, text
 
 
 MODULOS_ACTIVOS = [1, 2, 3, 4, 7, 8, 9]
@@ -79,6 +78,24 @@ def _mysql_url_from_env() -> str:
 
 DATABASE_URL = _mysql_url_from_env()
 USE_MYSQL = bool(DATABASE_URL)
+_SQLALCHEMY_CREATE_ENGINE = None
+_SQLALCHEMY_TEXT = None
+
+
+def _load_sqlalchemy() -> tuple[Any, Any]:
+    global _SQLALCHEMY_CREATE_ENGINE, _SQLALCHEMY_TEXT
+    if _SQLALCHEMY_CREATE_ENGINE is not None and _SQLALCHEMY_TEXT is not None:
+        return _SQLALCHEMY_CREATE_ENGINE, _SQLALCHEMY_TEXT
+    try:
+        from sqlalchemy import create_engine, text  # type: ignore
+    except Exception as exc:
+        raise RuntimeError(
+            "No se pudieron cargar las dependencias de base de datos. "
+            "Verifica que `SQLAlchemy` este instalado correctamente."
+        ) from exc
+    _SQLALCHEMY_CREATE_ENGINE = create_engine
+    _SQLALCHEMY_TEXT = text
+    return create_engine, text
 
 
 def default_db_path() -> Path:
@@ -121,8 +138,9 @@ class QueryResult:
 
 
 def _compile_query(sql: str, params: tuple[Any, ...] | list[Any] | None = None) -> tuple[Any, dict[str, Any]]:
+    _, sql_text = _load_sqlalchemy()
     if not params:
-        return text(sql), {}
+        return sql_text(sql), {}
 
     params = tuple(params)
     parts = sql.split("?")
@@ -137,7 +155,7 @@ def _compile_query(sql: str, params: tuple[Any, ...] | list[Any] | None = None) 
         compiled.append(parts[index + 1])
         values[key] = value
 
-    return text("".join(compiled)), values
+    return sql_text("".join(compiled)), values
 
 
 class DBConnection:
@@ -160,15 +178,17 @@ class DBConnection:
         return QueryResult(result)
 
     def executescript(self, sql_script: str) -> None:
+        _, sql_text = _load_sqlalchemy()
         statements = [statement.strip() for statement in sql_script.split(";") if statement.strip()]
         for statement in statements:
-            self._conn.execute(text(statement))
+            self._conn.execute(sql_text(statement))
 
     def commit(self) -> None:
         return None
 
 
 def get_engine() -> Any:
+    create_engine, _ = _load_sqlalchemy()
     if USE_MYSQL:
         return create_engine(DATABASE_URL, pool_pre_ping=True)
 
@@ -565,23 +585,21 @@ def recalculate_audit(auditoria_id: str) -> float:
     return score
 
 
-def update_manual_control(control_id: str, total_items: int, items_observacion: int, observaciones: str) -> None:
+def update_manual_control(control_id: str, score_percent: float) -> None:
     with get_connection() as conn:
         control = conn.execute("SELECT * FROM controles WHERE id = ?", (control_id,)).fetchone()
         if not control:
             raise ValueError("Control no encontrado.")
-        total_items = max(int(total_items), 0)
-        items_observacion = max(min(int(items_observacion), total_items), 0)
-        score = 1.0 if total_items == 0 else (total_items - items_observacion) / total_items
+        score_percent = max(0.0, min(float(score_percent), 100.0))
+        score = score_percent / 100
         resultado = score * float(control["ponderacion"] or 0)
         conn.execute(
             """
             UPDATE controles
-            SET total_items = ?, items_observacion = ?, observaciones = ?,
-                score_cumplimiento = ?, resultado_final = ?
+            SET score_cumplimiento = ?, resultado_final = ?
             WHERE id = ?
             """,
-            (total_items, items_observacion, observaciones, score, resultado, control_id),
+            (score, resultado, control_id),
         )
         conn.commit()
     recalculate_audit(control["auditoria_id"])
@@ -592,6 +610,37 @@ def close_audit(auditoria_id: str, hallazgos: str, recomendaciones: str) -> None
     recomendaciones = recomendaciones.strip()
     if not hallazgos or not recomendaciones:
         raise ValueError("Debes cargar hallazgos y recomendaciones antes del cierre.")
+
+    hallazgos_data = parse_json(hallazgos, [])
+    recomendaciones_data = parse_json(recomendaciones, [])
+    if not isinstance(hallazgos_data, list) or not isinstance(recomendaciones_data, list):
+        raise ValueError("El formato de hallazgos o recomendaciones no es valido.")
+    hallazgos_validos = [
+        item for item in hallazgos_data
+        if str(item.get("id", "")).strip()
+        and str(item.get("indicador", "")).strip()
+        and str(item.get("gravedad", "")).strip().lower() in {"alta", "media", "baja"}
+        and str(item.get("descripcion", "")).strip()
+    ]
+    hallazgo_ids = {str(item["id"]).strip() for item in hallazgos_validos}
+    recomendaciones_validas = [
+        item for item in recomendaciones_data
+        if str(item.get("id", "")).strip()
+        and str(item.get("hallazgoId", "")).strip() in hallazgo_ids
+        and str(item.get("descripcion", "")).strip()
+    ]
+    if not hallazgos_validos:
+        raise ValueError("Debes cargar al menos un hallazgo valido.")
+    if not recomendaciones_validas:
+        raise ValueError("Debes cargar al menos una recomendacion valida vinculada a un hallazgo.")
+
+    audit = get_audit(auditoria_id)
+    controles = audit["controles"] if audit else []
+    faltantes = [c for c in controles if not pd.notna(c.get("score_cumplimiento"))]
+    if faltantes:
+        nombres = ", ".join(str(c.get("modulo_nombre") or c.get("modulo_numero")) for c in faltantes)
+        raise ValueError(f"Faltan % de cumplimiento en: {nombres}")
+
     score = recalculate_audit(auditoria_id)
     with get_connection() as conn:
         conn.execute(
@@ -789,16 +838,17 @@ def import_transferencias(auditoria_id: str, sucursal: str, fecha_realizacion: s
 def save_transferencias_edits(auditoria_id: str, modulo: int, edited_rows: pd.DataFrame) -> None:
     with get_connection() as conn:
         for _, row in edited_rows.iterrows():
-            justificado = 1 if bool(row.get("justificado")) else 0
             cumple_base = 1 if int(row.get("cumple_base", 0)) == 1 else 0
+            justificado = 1 if (not cumple_base and bool(row.get("justificado"))) else 0
             cumple_final = 1 if (cumple_base or justificado) else 0
+            observacion = str(row.get("observacion", "") or "").strip() if not cumple_base else ""
             conn.execute(
                 """
                 UPDATE transferencias
                 SET justificado = ?, observacion = ?, cumple_final = ?, fecha_actualizacion = CURRENT_TIMESTAMP
                 WHERE id = ? AND auditoria_id = ?
                 """,
-                (justificado, str(row.get("observacion", "") or ""), cumple_final, row["id"], auditoria_id),
+                (justificado, observacion, cumple_final, row["id"], auditoria_id),
             )
         _recalculate_transfer_module(conn, auditoria_id, modulo)
         conn.commit()
@@ -1051,23 +1101,36 @@ def save_ventas_edits(auditoria_id: str, edited_rows: pd.DataFrame) -> None:
             firma_gerente = 1 if bool(row.get("firma_gerente_sector")) else 0
             justificado = 1 if bool(row.get("justificado")) else 0
             cumple_final = 1 if ((firma_deposito and firma_gerente) or justificado) else 0
-            conn.execute(
-                """
-                UPDATE ventas_internas
-                SET firma_responsable_deposito = ?, firma_gerente_sector = ?, justificado = ?,
-                    cumple_final = ?, observacion = ?, fecha_actualizacion = CURRENT_TIMESTAMP
-                WHERE id = ? AND auditoria_id = ?
-                """,
-                (
-                    firma_deposito,
-                    firma_gerente,
-                    justificado,
-                    cumple_final,
-                    str(row.get("observacion", "") or ""),
-                    row["id"],
-                    auditoria_id,
-                ),
-            )
+            numero_comprobante = str(row.get("numero_comprobante") or "").strip()
+            if numero_comprobante:
+                target_rows = conn.execute(
+                    """
+                    SELECT id FROM ventas_internas
+                    WHERE auditoria_id = ? AND numero_comprobante = ? AND en_muestra = 1
+                    """,
+                    (auditoria_id, numero_comprobante),
+                ).fetchall()
+                ids = [item["id"] for item in target_rows]
+            else:
+                ids = [row["id"]]
+            for venta_id in ids:
+                conn.execute(
+                    """
+                    UPDATE ventas_internas
+                    SET firma_responsable_deposito = ?, firma_gerente_sector = ?, justificado = ?,
+                        cumple_final = ?, observacion = ?, fecha_actualizacion = CURRENT_TIMESTAMP
+                    WHERE id = ? AND auditoria_id = ?
+                    """,
+                    (
+                        firma_deposito,
+                        firma_gerente,
+                        justificado,
+                        cumple_final,
+                        str(row.get("observacion", "") or ""),
+                        venta_id,
+                        auditoria_id,
+                    ),
+                )
         _recalculate_ventas_module(conn, auditoria_id)
         conn.commit()
     recalculate_audit(auditoria_id)

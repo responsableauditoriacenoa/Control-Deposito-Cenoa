@@ -78,6 +78,18 @@ def fmt_percent(value: float | None) -> str:
     return f"{(float(value or 0) * 100):.2f}%"
 
 
+def parse_json_list(value: str | None) -> list[dict]:
+    if not value:
+        return []
+    try:
+        import json
+
+        parsed = json.loads(value)
+        return parsed if isinstance(parsed, list) else []
+    except Exception:
+        return []
+
+
 def metric_card(label: str, value: str, sub: str = "") -> None:
     st.markdown(
         f"""
@@ -291,12 +303,20 @@ def render_manual_modules(audit: dict) -> None:
         if control["modulo_numero"] not in (3, 4, 7):
             continue
         with st.expander(control["modulo_nombre"]):
-            col1, col2 = st.columns(2)
-            total = col1.number_input("Total items", min_value=0, value=int(control.get("total_items") or 0), key=f"total_{control['id']}")
-            observados = col2.number_input("Items con observacion", min_value=0, value=int(control.get("items_observacion") or 0), key=f"obs_{control['id']}")
-            observaciones = st.text_area("Observaciones", value=control.get("observaciones") or "", key=f"txt_{control['id']}")
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Ponderacion", fmt_percent(control.get("ponderacion")))
+            col2.metric("% Cumplimiento", fmt_percent(control.get("score_cumplimiento")))
+            col3.metric("Resultado", fmt_percent(control.get("resultado_final")))
+            percent = st.number_input(
+                "% de cumplimiento",
+                min_value=0.0,
+                max_value=100.0,
+                value=float((control.get("score_cumplimiento") or 0) * 100),
+                step=0.5,
+                key=f"manual_score_{control['id']}",
+            )
             if st.button("Guardar modulo", key=f"save_{control['id']}"):
-                update_manual_control(control["id"], int(total), int(observados), observaciones)
+                update_manual_control(control["id"], float(percent))
                 st.success("Modulo actualizado.")
                 st.rerun()
 
@@ -321,12 +341,26 @@ def render_transfer_section(audit: dict, modulo: int) -> None:
         if df.empty:
             st.caption("Sin registros importados.")
             return
+        total = len(df)
+        observadas = int((df["cumple_final"] == 0).sum())
+        cumplen = total - observadas
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total", str(total))
+        c2.metric("Cumplen", str(cumplen))
+        c3.metric("No cumplen", str(observadas))
+        c4.metric("% Cumplimiento", fmt_percent(cumplen / total if total else 0))
         edited = st.data_editor(
             df,
             use_container_width=True,
             hide_index=True,
             disabled=["id", "fecha_transferencia", "numero_comprobante", "sucursal_origen", "sucursal_destino", "dias_habiles", "cumple_base", "cumple_final"],
             key=f"transfer_editor_{modulo}",
+            column_config={
+                "justificado": st.column_config.CheckboxColumn(
+                    "Justificado",
+                    help="Solo aplica cuando la transferencia no cumple por dias habiles.",
+                ),
+            },
         )
         if st.button("Guardar cambios", key=f"save_transfer_{modulo}"):
             save_transferencias_edits(audit["id"], modulo, edited)
@@ -354,6 +388,14 @@ def render_creditos_section(audit: dict) -> None:
         if df.empty:
             st.caption("Sin registros importados.")
             return
+        total = len(df)
+        observadas = int((df["cumple_final"] == 0).sum())
+        cumplen = total - observadas
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total", str(total))
+        c2.metric("Cumplen", str(cumplen))
+        c3.metric("No cumplen", str(observadas))
+        c4.metric("% Cumplimiento", fmt_percent(cumplen / total if total else 0))
         edited = st.data_editor(
             df,
             use_container_width=True,
@@ -388,11 +430,36 @@ def render_ventas_section(audit: dict) -> None:
         if df.empty:
             st.caption("Sin muestra generada todavia.")
             return
+        grouped = (
+            df.groupby("numero_comprobante", dropna=False)
+            .agg(
+                id=("id", "first"),
+                fecha=("fecha", "first"),
+                tipo_comprobante=("tipo_comprobante", "first"),
+                articulo_codigo=("articulo_codigo", lambda s: " | ".join([str(v) for v in s.fillna("") if str(v)])),
+                articulo_descripcion=("articulo_descripcion", lambda s: " | ".join([str(v) for v in s.fillna("") if str(v)])),
+                importe=("importe", "sum"),
+                firma_responsable_deposito=("firma_responsable_deposito", "first"),
+                firma_gerente_sector=("firma_gerente_sector", "first"),
+                justificado=("justificado", "first"),
+                cumple_final=("cumple_final", "max"),
+                observacion=("observacion", "first"),
+            )
+            .reset_index()
+        )
+        total = len(grouped)
+        observadas = int((grouped["cumple_final"] == 0).sum())
+        cumplen = total - observadas
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Comprobantes en muestra", str(total))
+        c2.metric("Cumplen", str(cumplen))
+        c3.metric("No cumplen", str(observadas))
+        c4.metric("% Cumplimiento", fmt_percent(cumplen / total if total else 0))
         edited = st.data_editor(
-            df,
+            grouped,
             use_container_width=True,
             hide_index=True,
-            disabled=["id", "fecha", "tipo_comprobante", "numero_comprobante", "articulo_codigo", "articulo_descripcion", "importe", "en_muestra", "cumple_final"],
+            disabled=["id", "fecha", "tipo_comprobante", "numero_comprobante", "articulo_codigo", "articulo_descripcion", "importe", "cumple_final"],
             key="ventas_editor",
         )
         if st.button("Guardar cambios ventas internas"):
@@ -403,10 +470,63 @@ def render_ventas_section(audit: dict) -> None:
 
 def render_close_section(audit: dict) -> None:
     st.markdown("### Cierre de auditoria")
-    hallazgos = st.text_area("Hallazgos", value=audit.get("hallazgos") or "", height=140)
-    recomendaciones = st.text_area("Recomendaciones", value=audit.get("recomendaciones") or "", height=140)
+    controles = [item for item in audit["controles"] if item["modulo_numero"] in MODULOS_ACTIVOS]
+    faltantes = [item["modulo_nombre"] for item in controles if pd.isna(item.get("score_cumplimiento"))]
+    hallazgos_prev = parse_json_list(audit.get("hallazgos"))
+    recomendaciones_prev = parse_json_list(audit.get("recomendaciones"))
+    hallazgo_default = hallazgos_prev[0] if hallazgos_prev else {"id": "H1", "indicador": str(controles[0]["modulo_numero"]) if controles else "", "gravedad": "media", "descripcion": ""}
+    recomendacion_default = recomendaciones_prev[0] if recomendaciones_prev else {"id": "R1", "hallazgoId": hallazgo_default["id"], "descripcion": ""}
+
+    if faltantes:
+        st.warning(f"Faltan % de cumplimiento en: {', '.join(faltantes)}")
+
+    st.markdown("#### Hallazgo")
+    h1, h2 = st.columns(2)
+    hallazgo_id = h1.text_input("ID hallazgo", value=str(hallazgo_default.get("id", "H1")))
+    indicador = h2.selectbox(
+        "Indicador de referencia",
+        [str(item["modulo_numero"]) for item in controles],
+        index=max(0, [str(item["modulo_numero"]) for item in controles].index(str(hallazgo_default.get("indicador"))) if controles and str(hallazgo_default.get("indicador")) in [str(item["modulo_numero"]) for item in controles] else 0),
+    ) if controles else ""
+    gravedad = st.selectbox("Gravedad", ["alta", "media", "baja"], index=["alta", "media", "baja"].index(str(hallazgo_default.get("gravedad", "media")).lower()) if str(hallazgo_default.get("gravedad", "media")).lower() in ["alta", "media", "baja"] else 1)
+    hallazgo_desc = st.text_area("Descripcion del hallazgo", value=str(hallazgo_default.get("descripcion", "")), height=120)
+
+    st.markdown("#### Recomendacion")
+    r1, r2 = st.columns(2)
+    recomendacion_id = r1.text_input("ID recomendacion", value=str(recomendacion_default.get("id", "R1")))
+    hallazgo_ref = r2.text_input("Hallazgo de referencia", value=str(recomendacion_default.get("hallazgoId", hallazgo_id or "H1")))
+    recomendacion_desc = st.text_area("Descripcion de la recomendacion", value=str(recomendacion_default.get("descripcion", "")), height=120)
+
+    hallazgos_payload = [
+        {
+            "id": hallazgo_id.strip(),
+            "indicador": str(indicador).strip(),
+            "gravedad": str(gravedad).strip().lower(),
+            "descripcion": hallazgo_desc.strip(),
+        }
+    ]
+    recomendaciones_payload = [
+        {
+            "id": recomendacion_id.strip(),
+            "hallazgoId": hallazgo_ref.strip(),
+            "descripcion": recomendacion_desc.strip(),
+        }
+    ]
+    hallazgo_ok = all(hallazgos_payload[0].values())
+    recomendacion_ok = all(recomendaciones_payload[0].values()) and recomendaciones_payload[0]["hallazgoId"] == hallazgos_payload[0]["id"]
+    checklist_cols = st.columns(3)
+    checklist_cols[0].markdown("`OK` Indicadores completos" if not faltantes else "`Pendiente` Indicadores completos")
+    checklist_cols[1].markdown("`OK` Hallazgo completo" if hallazgo_ok else "`Pendiente` Hallazgo completo")
+    checklist_cols[2].markdown("`OK` Recomendacion completa" if recomendacion_ok else "`Pendiente` Recomendacion completa")
+
     if st.button("Cerrar auditoria", type="primary", use_container_width=True):
-        close_audit(audit["id"], hallazgos, recomendaciones)
+        import json
+
+        close_audit(
+            audit["id"],
+            json.dumps(hallazgos_payload, ensure_ascii=True),
+            json.dumps(recomendaciones_payload, ensure_ascii=True),
+        )
         st.success("Auditoria cerrada correctamente.")
         st.rerun()
 
