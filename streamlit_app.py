@@ -157,6 +157,171 @@ def inject_styles() -> None:
         .metric-sub { font-size: 12px; color: #64748b; margin-top: 6px; min-height: 16px; }
         .section-title { font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
         .section-copy { color: #475569; margin-bottom: 14px; }
+        .indicator-header {
+            display:flex;
+            align-items:flex-start;
+            justify-content:space-between;
+            gap:16px;
+            margin-bottom:14px;
+        }
+        .indicator-header h2 {
+            margin:0;
+            font-size:28px;
+            color:#0f172a;
+            font-weight:800;
+        }
+        .indicator-header p {
+            margin:6px 0 0 0;
+            color:#64748b;
+            font-size:14px;
+        }
+        .auditoria-info-panel {
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+            gap:10px;
+            margin:0 0 16px 0;
+            background:#f8fbff;
+            border:1px solid #dbe4f2;
+            border-radius:14px;
+            padding:14px;
+        }
+        .auditoria-info-item {
+            color:#334155;
+            font-size:14px;
+            line-height:1.45;
+        }
+        .auditoria-info-item strong {
+            color:#0f172a;
+        }
+        .indicator-nav-active {
+            width:100%;
+            border:1px solid #a5b4fc;
+            background:linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color:#fff;
+            border-radius:11px;
+            padding:10px 12px;
+            font-weight:700;
+            box-shadow:0 8px 16px rgba(79,70,229,.24);
+            margin-bottom:8px;
+        }
+        .indicator-screen-card {
+            background:#ffffff;
+            border:1px solid #dbe4f2;
+            border-radius:16px;
+            padding:16px;
+            box-shadow:0 8px 20px rgba(15,23,42,.05);
+        }
+        .indicator-screen-card h3 {
+            margin:0 0 8px 0;
+            color:#0f172a;
+            font-size:22px;
+            font-weight:800;
+        }
+        .helper-text {
+            color:#64748b;
+            margin-bottom:12px;
+            font-size:14px;
+        }
+        .summary-card {
+            background:#f8fbff;
+            border:1px solid #dbe4f2;
+            border-radius:11px;
+            padding:10px 12px;
+            margin-bottom:10px;
+        }
+        .summary-card span {
+            display:block;
+            font-size:12px;
+            color:#64748b;
+            margin-bottom:5px;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+            font-weight:700;
+        }
+        .summary-card strong {
+            font-size:22px;
+            color:#4f46e5;
+        }
+        .resumen-cierre {
+            margin-top:20px;
+            padding:18px;
+            border:1px solid #d6e0f0;
+            border-radius:14px;
+            background:linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            box-shadow:0 6px 16px rgba(15,23,42,.05);
+        }
+        .resumen-cierre-grid {
+            display:grid;
+            grid-template-columns:repeat(2, minmax(280px, 1fr));
+            gap:14px;
+            margin-top:8px;
+        }
+        .resumen-cierre-panel {
+            border:1px solid #dbe4f3;
+            border-radius:12px;
+            padding:12px;
+            background:linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            box-shadow:0 6px 16px rgba(15,23,42,.05);
+        }
+        .resumen-cierre-panel h4 {
+            margin:0 0 10px 0;
+            font-size:15px;
+            color:#0f172a;
+            font-weight:800;
+        }
+        .cierre-note {
+            margin-top:12px;
+            padding:10px 12px;
+            border-radius:10px;
+            font-size:13px;
+        }
+        .cierre-note.warn {
+            border:1px solid #fecaca;
+            background:#fff1f2;
+            color:#9f1239;
+        }
+        .cierre-note.info {
+            border:1px solid #bfdbfe;
+            background:#eff6ff;
+            color:#1e3a8a;
+        }
+        .total-card-grid {
+            display:grid;
+            grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));
+            gap:16px;
+            margin-top:18px;
+            margin-bottom:18px;
+        }
+        .total-card {
+            background:linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            border-radius:14px;
+            padding:20px;
+            color:#ffffff;
+            text-align:center;
+            box-shadow:0 10px 24px rgba(79,70,229,.24);
+        }
+        .total-card h4 {
+            margin:0 0 12px 0;
+            font-size:14px;
+            font-weight:600;
+            opacity:.95;
+        }
+        .total-card .score-value {
+            font-size:32px;
+            font-weight:800;
+            margin:0;
+            letter-spacing:-.5px;
+        }
+        .total-card .calificacion-value {
+            font-size:18px;
+            font-weight:700;
+            margin:0;
+        }
+        @media (max-width: 1024px) {
+            .resumen-cierre-grid {
+                grid-template-columns:1fr;
+            }
+        }
         .audit-chip {
             display:inline-block; padding:8px 12px; border-radius:999px; background:#e8eefb; color:#29417f;
             font-weight:600; font-size:13px; margin-right:10px; margin-bottom:8px;
@@ -385,6 +550,7 @@ def init_state() -> None:
     st.session_state.setdefault("auditor_nombre", AUDITORES_DEFAULT[0])
     st.session_state.setdefault("section", "Dashboard")
     st.session_state.setdefault("selected_audit_id", None)
+    st.session_state.setdefault("operation_module", 1)
 
 
 def fmt_percent(value: float | None) -> str:
@@ -479,6 +645,14 @@ def render_readonly_table(rows: list[dict[str, str]], columns: list[tuple[str, s
         """,
         unsafe_allow_html=True,
     )
+
+
+def render_info_panel(items: list[tuple[str, str]]) -> None:
+    cells = "".join(
+        f'<div class="auditoria-info-item"><strong>{html.escape(label)}:</strong> {html.escape(value)}</div>'
+        for label, value in items
+    )
+    st.markdown(f'<div class="auditoria-info-panel">{cells}</div>', unsafe_allow_html=True)
 
 
 def metric_card(label: str, value: str, sub: str = "", primary: bool = False) -> None:
@@ -1031,211 +1205,256 @@ def render_manual_modules(audit: dict) -> None:
 
 
 def render_transfer_section(audit: dict, modulo: int) -> None:
-    with st.expander(MODULO_NOMBRES[modulo], expanded=modulo == 1):
-        uploader = st.file_uploader("Importar Excel", type=["xlsx", "xls"], key=f"up_transfer_{modulo}")
-        if uploader and st.button("Procesar", key=f"process_transfer_{modulo}"):
-            import_transferencias(audit["id"], audit["sucursal"], audit["fecha_realizacion"], uploader)
-            st.success("Transferencias importadas.")
-            st.rerun()
-        df = fetch_table(
-            """
-            SELECT id, fecha_transferencia, numero_comprobante, sucursal_origen, sucursal_destino,
-                   dias_habiles, cumple_base, justificado, cumple_final, observacion
-            FROM transferencias
-            WHERE auditoria_id = ? AND modulo_numero = ?
-            ORDER BY dias_habiles DESC, fecha_transferencia ASC
-            """,
-            (audit["id"], modulo),
-        )
-        if df.empty:
-            st.caption("Sin registros importados.")
-            return
-        total = len(df)
-        observadas = int((df["cumple_final"] == 0).sum())
-        cumplen = total - observadas
-        mini_kpi_row([
-            ("Total", str(total)),
-            ("Cumplen", str(cumplen)),
-            ("No cumplen", str(observadas)),
-            ("% Cumplimiento", fmt_percent(cumplen / total if total else 0)),
-        ])
-        edited = st.data_editor(
-            df,
-            use_container_width=True,
-            hide_index=True,
-            disabled=["id", "fecha_transferencia", "numero_comprobante", "sucursal_origen", "sucursal_destino", "dias_habiles", "cumple_base", "cumple_final"],
-            key=f"transfer_editor_{modulo}",
-            column_config={
-                "fecha_transferencia": st.column_config.TextColumn("Fecha", width="small"),
-                "numero_comprobante": st.column_config.TextColumn("Comprobante", width="small"),
-                "sucursal_origen": st.column_config.TextColumn("Origen", width="medium"),
-                "sucursal_destino": st.column_config.TextColumn("Destino", width="medium"),
-                "dias_habiles": st.column_config.NumberColumn("Dias", width="small"),
-                "justificado": st.column_config.CheckboxColumn(
-                    "Justificado",
-                    help="Solo aplica cuando la transferencia no cumple por dias habiles.",
-                ),
-                "observacion": st.column_config.TextColumn("Observacion", width="large"),
-            },
-        )
-        if st.button("Guardar cambios", key=f"save_transfer_{modulo}"):
-            save_transferencias_edits(audit["id"], modulo, edited)
-            st.success("Transferencias actualizadas.")
-            st.rerun()
+    st.markdown(f"<h3>{html.escape(MODULO_NOMBRES[modulo])}</h3>", unsafe_allow_html=True)
+    st.markdown(
+        '<div class="helper-text">Importa el Excel de transferencias pendientes para clasificar por sucursal destino.</div>',
+        unsafe_allow_html=True,
+    )
+    uploader = st.file_uploader("Importar Excel", type=["xlsx", "xls"], key=f"up_transfer_{modulo}")
+    if uploader and st.button("Procesar", key=f"process_transfer_{modulo}"):
+        import_transferencias(audit["id"], audit["sucursal"], audit["fecha_realizacion"], uploader)
+        st.success("Transferencias importadas.")
+        st.rerun()
+    df = fetch_table(
+        """
+        SELECT id, fecha_transferencia, numero_comprobante, sucursal_origen, sucursal_destino,
+               dias_habiles, cumple_base, justificado, cumple_final, observacion
+        FROM transferencias
+        WHERE auditoria_id = ? AND modulo_numero = ?
+        ORDER BY dias_habiles DESC, fecha_transferencia ASC
+        """,
+        (audit["id"], modulo),
+    )
+    if df.empty:
+        st.caption("Sin registros importados.")
+        return
+    total = len(df)
+    observadas = int((df["cumple_final"] == 0).sum())
+    cumplen = total - observadas
+    mini_kpi_row([
+        ("Total", str(total)),
+        ("Cumplen", str(cumplen)),
+        ("No cumplen", str(observadas)),
+        ("% Cumplimiento", fmt_percent(cumplen / total if total else 0)),
+    ])
+    edited = st.data_editor(
+        df,
+        use_container_width=True,
+        hide_index=True,
+        disabled=["id", "fecha_transferencia", "numero_comprobante", "sucursal_origen", "sucursal_destino", "dias_habiles", "cumple_base", "cumple_final"],
+        key=f"transfer_editor_{modulo}",
+        column_config={
+            "fecha_transferencia": st.column_config.TextColumn("Fecha", width="small"),
+            "numero_comprobante": st.column_config.TextColumn("Comprobante", width="small"),
+            "sucursal_origen": st.column_config.TextColumn("Origen", width="medium"),
+            "sucursal_destino": st.column_config.TextColumn("Destino", width="medium"),
+            "dias_habiles": st.column_config.NumberColumn("Dias", width="small"),
+            "justificado": st.column_config.CheckboxColumn(
+                "Justificado",
+                help="Solo aplica cuando la transferencia no cumple por dias habiles.",
+            ),
+            "observacion": st.column_config.TextColumn("Observacion", width="large"),
+        },
+    )
+    if st.button("Guardar cambios", key=f"save_transfer_{modulo}"):
+        save_transferencias_edits(audit["id"], modulo, edited)
+        st.success("Transferencias actualizadas.")
+        st.rerun()
 
 
 def render_creditos_section(audit: dict) -> None:
-    with st.expander(MODULO_NOMBRES[2], expanded=True):
-        uploader = st.file_uploader("Importar Excel de creditos", type=["xlsx", "xls"], key="up_creditos")
-        if uploader and st.button("Procesar creditos"):
-            import_creditos(audit["id"], uploader)
-            st.success("Creditos importados.")
-            st.rerun()
-        df = fetch_table(
-            """
-            SELECT id, fecha, articulo, numero_comprobante, sucursal_origen, sucursal_destino,
-                   cantidad, importe, tiene_reclamo, cumple_final, observacion
-            FROM creditos_pendientes
-            WHERE auditoria_id = ?
-            ORDER BY fecha ASC, numero_comprobante ASC
-            """,
-            (audit["id"],),
-        )
-        if df.empty:
-            st.caption("Sin registros importados.")
-            return
-        total = len(df)
-        observadas = int((df["cumple_final"] == 0).sum())
-        cumplen = total - observadas
-        mini_kpi_row([
-            ("Total", str(total)),
-            ("Cumplen", str(cumplen)),
-            ("No cumplen", str(observadas)),
-            ("% Cumplimiento", fmt_percent(cumplen / total if total else 0)),
-        ])
-        edited = st.data_editor(
-            df,
-            use_container_width=True,
-            hide_index=True,
-            disabled=["id", "fecha", "articulo", "numero_comprobante", "sucursal_origen", "sucursal_destino", "cantidad", "importe", "cumple_final"],
-            key="creditos_editor",
-            column_config={
-                "fecha": st.column_config.TextColumn("Fecha", width="small"),
-                "articulo": st.column_config.TextColumn("Articulo", width="medium"),
-                "numero_comprobante": st.column_config.TextColumn("Comprobante", width="small"),
-                "cantidad": st.column_config.NumberColumn("Cantidad", width="small", format="%.2f"),
-                "importe": st.column_config.NumberColumn("Importe", width="small", format="%.2f"),
-                "tiene_reclamo": st.column_config.CheckboxColumn("Reclamo"),
-                "observacion": st.column_config.TextColumn("Observacion", width="large"),
-            },
-        )
-        if st.button("Guardar cambios creditos"):
-            save_creditos_edits(audit["id"], edited)
-            st.success("Creditos actualizados.")
-            st.rerun()
+    st.markdown(f"<h3>{html.escape(MODULO_NOMBRES[2])}</h3>", unsafe_allow_html=True)
+    st.markdown(
+        '<div class="helper-text">Importa la base de creditos pendientes y marca los reclamos asociados.</div>',
+        unsafe_allow_html=True,
+    )
+    uploader = st.file_uploader("Importar Excel de creditos", type=["xlsx", "xls"], key="up_creditos")
+    if uploader and st.button("Procesar creditos"):
+        import_creditos(audit["id"], uploader)
+        st.success("Creditos importados.")
+        st.rerun()
+    df = fetch_table(
+        """
+        SELECT id, fecha, articulo, numero_comprobante, sucursal_origen, sucursal_destino,
+               cantidad, importe, tiene_reclamo, cumple_final, observacion
+        FROM creditos_pendientes
+        WHERE auditoria_id = ?
+        ORDER BY fecha ASC, numero_comprobante ASC
+        """,
+        (audit["id"],),
+    )
+    if df.empty:
+        st.caption("Sin registros importados.")
+        return
+    total = len(df)
+    observadas = int((df["cumple_final"] == 0).sum())
+    cumplen = total - observadas
+    mini_kpi_row([
+        ("Total", str(total)),
+        ("Cumplen", str(cumplen)),
+        ("No cumplen", str(observadas)),
+        ("% Cumplimiento", fmt_percent(cumplen / total if total else 0)),
+    ])
+    edited = st.data_editor(
+        df,
+        use_container_width=True,
+        hide_index=True,
+        disabled=["id", "fecha", "articulo", "numero_comprobante", "sucursal_origen", "sucursal_destino", "cantidad", "importe", "cumple_final"],
+        key="creditos_editor",
+        column_config={
+            "fecha": st.column_config.TextColumn("Fecha", width="small"),
+            "articulo": st.column_config.TextColumn("Articulo", width="medium"),
+            "numero_comprobante": st.column_config.TextColumn("Comprobante", width="small"),
+            "cantidad": st.column_config.NumberColumn("Cantidad", width="small", format="%.2f"),
+            "importe": st.column_config.NumberColumn("Importe", width="small", format="%.2f"),
+            "tiene_reclamo": st.column_config.CheckboxColumn("Reclamo"),
+            "observacion": st.column_config.TextColumn("Observacion", width="large"),
+        },
+    )
+    if st.button("Guardar cambios creditos"):
+        save_creditos_edits(audit["id"], edited)
+        st.success("Creditos actualizados.")
+        st.rerun()
 
 
 def render_ventas_section(audit: dict) -> None:
-    with st.expander(MODULO_NOMBRES[8], expanded=True):
-        uploader = st.file_uploader("Importar Excel de ventas internas", type=["xlsx", "xls"], key="up_ventas")
-        if uploader and st.button("Procesar ventas internas"):
-            import_ventas_internas(audit["id"], uploader)
-            st.success("Ventas internas importadas.")
-            st.rerun()
-        df = fetch_table(
-            """
-            SELECT id, fecha, tipo_comprobante, numero_comprobante, articulo_codigo, articulo_descripcion,
-                   importe, en_muestra, firma_responsable_deposito, firma_gerente_sector,
-                   justificado, cumple_final, observacion
-            FROM ventas_internas
-            WHERE auditoria_id = ? AND en_muestra = 1
-            ORDER BY fecha ASC, numero_comprobante ASC
-            """,
-            (audit["id"],),
+    st.markdown(f"<h3>{html.escape(MODULO_NOMBRES[8])}</h3>", unsafe_allow_html=True)
+    st.markdown(
+        '<div class="helper-text">Trabaja sobre la muestra de comprobantes y valida firmas, justificación y observaciones.</div>',
+        unsafe_allow_html=True,
+    )
+    uploader = st.file_uploader("Importar Excel de ventas internas", type=["xlsx", "xls"], key="up_ventas")
+    if uploader and st.button("Procesar ventas internas"):
+        import_ventas_internas(audit["id"], uploader)
+        st.success("Ventas internas importadas.")
+        st.rerun()
+    df = fetch_table(
+        """
+        SELECT id, fecha, tipo_comprobante, numero_comprobante, articulo_codigo, articulo_descripcion,
+               importe, en_muestra, firma_responsable_deposito, firma_gerente_sector,
+               justificado, cumple_final, observacion
+        FROM ventas_internas
+        WHERE auditoria_id = ? AND en_muestra = 1
+        ORDER BY fecha ASC, numero_comprobante ASC
+        """,
+        (audit["id"],),
+    )
+    if df.empty:
+        st.caption("Sin muestra generada todavia.")
+        return
+    grouped = (
+        df.groupby("numero_comprobante", dropna=False)
+        .agg(
+            id=("id", "first"),
+            fecha=("fecha", "first"),
+            tipo_comprobante=("tipo_comprobante", "first"),
+            articulo_codigo=("articulo_codigo", lambda s: " | ".join([str(v) for v in s.fillna("") if str(v)])),
+            articulo_descripcion=("articulo_descripcion", lambda s: " | ".join([str(v) for v in s.fillna("") if str(v)])),
+            importe=("importe", "sum"),
+            firma_responsable_deposito=("firma_responsable_deposito", "first"),
+            firma_gerente_sector=("firma_gerente_sector", "first"),
+            justificado=("justificado", "first"),
+            cumple_final=("cumple_final", "max"),
+            observacion=("observacion", "first"),
         )
-        if df.empty:
-            st.caption("Sin muestra generada todavia.")
-            return
-        grouped = (
-            df.groupby("numero_comprobante", dropna=False)
-            .agg(
-                id=("id", "first"),
-                fecha=("fecha", "first"),
-                tipo_comprobante=("tipo_comprobante", "first"),
-                articulo_codigo=("articulo_codigo", lambda s: " | ".join([str(v) for v in s.fillna("") if str(v)])),
-                articulo_descripcion=("articulo_descripcion", lambda s: " | ".join([str(v) for v in s.fillna("") if str(v)])),
-                importe=("importe", "sum"),
-                firma_responsable_deposito=("firma_responsable_deposito", "first"),
-                firma_gerente_sector=("firma_gerente_sector", "first"),
-                justificado=("justificado", "first"),
-                cumple_final=("cumple_final", "max"),
-                observacion=("observacion", "first"),
-            )
-            .reset_index()
-        )
-        total = len(grouped)
-        observadas = int((grouped["cumple_final"] == 0).sum())
-        cumplen = total - observadas
-        mini_kpi_row([
-            ("En muestra", str(total)),
-            ("Cumplen", str(cumplen)),
-            ("No cumplen", str(observadas)),
-            ("% Cumplimiento", fmt_percent(cumplen / total if total else 0)),
-        ])
-        edited = st.data_editor(
-            grouped,
-            use_container_width=True,
-            hide_index=True,
-            disabled=["id", "fecha", "tipo_comprobante", "numero_comprobante", "articulo_codigo", "articulo_descripcion", "importe", "cumple_final"],
-            key="ventas_editor",
-            column_config={
-                "fecha": st.column_config.TextColumn("Fecha", width="small"),
-                "tipo_comprobante": st.column_config.TextColumn("Comprobante", width="small"),
-                "numero_comprobante": st.column_config.TextColumn("Numero", width="small"),
-                "articulo_codigo": st.column_config.TextColumn("Codigos", width="medium"),
-                "articulo_descripcion": st.column_config.TextColumn("Articulos", width="large"),
-                "importe": st.column_config.NumberColumn("Importe", width="small", format="%.2f"),
-                "firma_responsable_deposito": st.column_config.CheckboxColumn("Firma deposito"),
-                "firma_gerente_sector": st.column_config.CheckboxColumn("Firma gerente"),
-                "justificado": st.column_config.CheckboxColumn("Justificado"),
-                "observacion": st.column_config.TextColumn("Observacion", width="large"),
-            },
-        )
-        if st.button("Guardar cambios ventas internas"):
-            save_ventas_edits(audit["id"], edited)
-            st.success("Ventas internas actualizadas.")
-            st.rerun()
+        .reset_index()
+    )
+    total = len(grouped)
+    observadas = int((grouped["cumple_final"] == 0).sum())
+    cumplen = total - observadas
+    mini_kpi_row([
+        ("En muestra", str(total)),
+        ("Cumplen", str(cumplen)),
+        ("No cumplen", str(observadas)),
+        ("% Cumplimiento", fmt_percent(cumplen / total if total else 0)),
+    ])
+    edited = st.data_editor(
+        grouped,
+        use_container_width=True,
+        hide_index=True,
+        disabled=["id", "fecha", "tipo_comprobante", "numero_comprobante", "articulo_codigo", "articulo_descripcion", "importe", "cumple_final"],
+        key="ventas_editor",
+        column_config={
+            "fecha": st.column_config.TextColumn("Fecha", width="small"),
+            "tipo_comprobante": st.column_config.TextColumn("Comprobante", width="small"),
+            "numero_comprobante": st.column_config.TextColumn("Numero", width="small"),
+            "articulo_codigo": st.column_config.TextColumn("Codigos", width="medium"),
+            "articulo_descripcion": st.column_config.TextColumn("Articulos", width="large"),
+            "importe": st.column_config.NumberColumn("Importe", width="small", format="%.2f"),
+            "firma_responsable_deposito": st.column_config.CheckboxColumn("Firma deposito"),
+            "firma_gerente_sector": st.column_config.CheckboxColumn("Firma gerente"),
+            "justificado": st.column_config.CheckboxColumn("Justificado"),
+            "observacion": st.column_config.TextColumn("Observacion", width="large"),
+        },
+    )
+    if st.button("Guardar cambios ventas internas"):
+        save_ventas_edits(audit["id"], edited)
+        st.success("Ventas internas actualizadas.")
+        st.rerun()
 
 
 def render_close_section(audit: dict) -> None:
-    st.markdown('<div class="subsection-title">Resumen y Cierre</div>', unsafe_allow_html=True)
     controles = [item for item in audit["controles"] if item["modulo_numero"] in MODULOS_ACTIVOS]
     faltantes = [item["modulo_nombre"] for item in controles if pd.isna(item.get("score_cumplimiento"))]
     hallazgos_prev = parse_json_list(audit.get("hallazgos"))
     recomendaciones_prev = parse_json_list(audit.get("recomendaciones"))
     hallazgo_default = hallazgos_prev[0] if hallazgos_prev else {"id": "H1", "indicador": str(controles[0]["modulo_numero"]) if controles else "", "gravedad": "media", "descripcion": ""}
     recomendacion_default = recomendaciones_prev[0] if recomendaciones_prev else {"id": "R1", "hallazgoId": hallazgo_default["id"], "descripcion": ""}
-
-    if faltantes:
-        st.warning(f"Faltan % de cumplimiento en: {', '.join(faltantes)}")
-
-    st.markdown("#### Hallazgo")
-    h1, h2 = st.columns(2)
-    hallazgo_id = h1.text_input("ID hallazgo", value=str(hallazgo_default.get("id", "H1")))
-    indicador = h2.selectbox(
-        "Indicador de referencia",
-        [str(item["modulo_numero"]) for item in controles],
-        index=max(0, [str(item["modulo_numero"]) for item in controles].index(str(hallazgo_default.get("indicador"))) if controles and str(hallazgo_default.get("indicador")) in [str(item["modulo_numero"]) for item in controles] else 0),
-    ) if controles else ""
-    gravedad = st.selectbox("Gravedad", ["alta", "media", "baja"], index=["alta", "media", "baja"].index(str(hallazgo_default.get("gravedad", "media")).lower()) if str(hallazgo_default.get("gravedad", "media")).lower() in ["alta", "media", "baja"] else 1)
-    hallazgo_desc = st.text_area("Descripcion del hallazgo", value=str(hallazgo_default.get("descripcion", "")), height=120)
-
-    st.markdown("#### Recomendacion")
-    r1, r2 = st.columns(2)
-    recomendacion_id = r1.text_input("ID recomendacion", value=str(recomendacion_default.get("id", "R1")))
-    hallazgo_ref = r2.text_input("Hallazgo de referencia", value=str(recomendacion_default.get("hallazgoId", hallazgo_id or "H1")))
-    recomendacion_desc = st.text_area("Descripcion de la recomendacion", value=str(recomendacion_default.get("descripcion", "")), height=120)
-
+    rows = []
+    for control in controles:
+        rows.append(
+            {
+                "modulo": f"<strong>{html.escape(pretty_text(control.get('modulo_nombre')))}</strong>",
+                "etapa": html.escape(pretty_text(control.get("etapa"))),
+                "ponderacion": html.escape(pretty_score(control.get("ponderacion"))),
+                "score": html.escape(pretty_score(control.get("score_cumplimiento"))),
+                "resultado": html.escape(pretty_score(control.get("resultado_final"))),
+            }
+        )
+    render_readonly_table(
+        rows,
+        [
+            ("modulo", "Indicador"),
+            ("etapa", "Etapa"),
+            ("ponderacion", "Ponderacion"),
+            ("score", "% Cumplimiento"),
+            ("resultado", "Aporte Final"),
+        ],
+    )
+    st.markdown(
+        f"""
+        <div class="total-card-grid">
+            <div class="total-card">
+                <h4>Score Final</h4>
+                <p class="score-value">{html.escape(pretty_score(audit.get("score_final")))}</p>
+            </div>
+            <div class="total-card">
+                <h4>Calificacion</h4>
+                <p class="calificacion-value">{html.escape(pretty_text(audit.get("calificacion")))}</p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="resumen-cierre"><h3>Cierre de Auditoria</h3><div class="helper-text">Se habilita cuando todos los indicadores tienen su % de cumplimiento guardado.</div></div>', unsafe_allow_html=True)
+    left, right = st.columns(2)
+    with left:
+        st.markdown('<div class="resumen-cierre-panel"><h4>Hallazgos</h4></div>', unsafe_allow_html=True)
+        h1, h2 = st.columns(2)
+        hallazgo_id = h1.text_input("ID hallazgo", value=str(hallazgo_default.get("id", "H1")))
+        indicador = h2.selectbox(
+            "Indicador de referencia",
+            [str(item["modulo_numero"]) for item in controles],
+            index=max(0, [str(item["modulo_numero"]) for item in controles].index(str(hallazgo_default.get("indicador"))) if controles and str(hallazgo_default.get("indicador")) in [str(item["modulo_numero"]) for item in controles] else 0),
+        ) if controles else ""
+        gravedad = st.selectbox("Gravedad", ["alta", "media", "baja"], index=["alta", "media", "baja"].index(str(hallazgo_default.get("gravedad", "media")).lower()) if str(hallazgo_default.get("gravedad", "media")).lower() in ["alta", "media", "baja"] else 1)
+        hallazgo_desc = st.text_area("Descripcion del hallazgo", value=str(hallazgo_default.get("descripcion", "")), height=140)
+    with right:
+        st.markdown('<div class="resumen-cierre-panel"><h4>Recomendaciones</h4></div>', unsafe_allow_html=True)
+        r1, r2 = st.columns(2)
+        recomendacion_id = r1.text_input("ID recomendacion", value=str(recomendacion_default.get("id", "R1")))
+        hallazgo_ref = r2.text_input("Hallazgo de referencia", value=str(recomendacion_default.get("hallazgoId", hallazgo_id or "H1")))
+        recomendacion_desc = st.text_area("Descripcion de la recomendacion", value=str(recomendacion_default.get("descripcion", "")), height=140)
     hallazgos_payload = [
         {
             "id": hallazgo_id.strip(),
@@ -1253,12 +1472,26 @@ def render_close_section(audit: dict) -> None:
     ]
     hallazgo_ok = all(hallazgos_payload[0].values())
     recomendacion_ok = all(recomendaciones_payload[0].values()) and recomendaciones_payload[0]["hallazgoId"] == hallazgos_payload[0]["id"]
-    checklist_cols = st.columns(3)
-    checklist_cols[0].markdown("`OK` Indicadores completos" if not faltantes else "`Pendiente` Indicadores completos")
-    checklist_cols[1].markdown("`OK` Hallazgo completo" if hallazgo_ok else "`Pendiente` Hallazgo completo")
-    checklist_cols[2].markdown("`OK` Recomendacion completa" if recomendacion_ok else "`Pendiente` Recomendacion completa")
-
-    if st.button("Cerrar auditoria", type="primary", use_container_width=True):
+    checklist = [
+        ("Indicadores completos", not faltantes),
+        ("Hallazgos completos", hallazgo_ok),
+        ("Recomendaciones completas", recomendacion_ok),
+    ]
+    checklist_html = "".join(
+        f"<li>{'OK' if ok else 'Pendiente'} - {html.escape(label)}</li>" for label, ok in checklist
+    )
+    st.markdown(f'<div class="cierre-note info"><strong>Checklist de cierre</strong><ul>{checklist_html}</ul></div>', unsafe_allow_html=True)
+    if faltantes or not hallazgo_ok or not recomendacion_ok:
+        motivos = []
+        if faltantes:
+            motivos.append(f"Faltan % de cumplimiento en: {', '.join(faltantes)}")
+        if not hallazgo_ok:
+            motivos.append("Debes cargar un hallazgo completo.")
+        if not recomendacion_ok:
+            motivos.append("Debes cargar una recomendacion valida vinculada al hallazgo.")
+        motivos_html = "".join(f"<li>{html.escape(item)}</li>" for item in motivos)
+        st.markdown(f'<div class="cierre-note warn"><strong>Motivos de bloqueo</strong><ul>{motivos_html}</ul></div>', unsafe_allow_html=True)
+    if st.button("Cerrar auditoria", type="primary", use_container_width=True, disabled=bool(faltantes or not hallazgo_ok or not recomendacion_ok)):
         import json
 
         close_audit(
@@ -1271,8 +1504,6 @@ def render_close_section(audit: dict) -> None:
 
 
 def render_operacion(audits: list[dict]) -> None:
-    st.markdown('<div class="section-title">Operacion</div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-copy">Carga de indicadores, seguimiento y cierre de la auditoria activa.</div>', unsafe_allow_html=True)
     audit_id = st.session_state.get("selected_audit_id")
     if not audit_id and audits:
         audit_id = audits[0]["id"]
@@ -1284,53 +1515,34 @@ def render_operacion(audits: list[dict]) -> None:
     audit = get_audit(audit_id)
     st.markdown(
         f"""
-        <span class="audit-chip">{audit['codigo']}</span>
-        <span class="audit-chip">{audit.get('empresa', '-')}</span>
-        <span class="audit-chip">{audit.get('sucursal', '-')}</span>
+        <div class="indicator-header">
+            <div>
+                <h2>Pantallas por Indicador</h2>
+                <p>{html.escape(pretty_text(audit.get('codigo')))} | {html.escape(pretty_text(audit.get('empresa')))} | {html.escape(pretty_text(audit.get('sucursal')))}</p>
+            </div>
+        </div>
         """,
         unsafe_allow_html=True,
     )
-
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Estado", audit["estado"])
-    col2.metric("Score", fmt_percent(audit.get("score_final")))
-    col3.metric("Calificacion", audit.get("calificacion") or "-")
-    col4.metric("Auditor", audit.get("auditor_nombre") or audit.get("auditor_id") or "-")
-
-    mini_kpi_row([
-        ("Empresa", str(audit.get("empresa") or "-")),
-        ("Sucursal", str(audit.get("sucursal") or "-")),
-        ("Fecha", str(audit.get("fecha_realizacion") or "-")[:10]),
-        ("Modulos", str(len([item for item in audit["controles"] if item["modulo_numero"] in MODULOS_ACTIVOS]))),
-    ])
-
+    render_info_panel(
+        [
+            ("Auditor", pretty_text(audit.get("auditor_nombre") or audit.get("auditor_id"))),
+            ("Sucursal", pretty_text(audit.get("sucursal"))),
+            ("Fecha", pretty_date(audit.get("fecha_realizacion"))),
+            ("Estado", pretty_status(audit.get("estado"))),
+            ("Score final", pretty_score(audit.get("score_final"))),
+            ("Calificacion", pretty_text(audit.get("calificacion"))),
+        ]
+    )
     controles_df = pd.DataFrame(audit["controles"])[
         ["modulo_numero", "modulo_nombre", "etapa", "ponderacion", "score_cumplimiento", "resultado_final", "total_items", "items_observacion"]
     ].copy()
-    controles_df["modulo_nombre"] = controles_df["modulo_nombre"].map(pretty_text)
-    controles_df["etapa"] = controles_df["etapa"].map(pretty_text)
-    controles_df["ponderacion"] = controles_df["ponderacion"].map(pretty_score)
-    controles_df["score_cumplimiento"] = controles_df["score_cumplimiento"].map(pretty_score)
-    controles_df["resultado_final"] = controles_df["resultado_final"].map(pretty_score)
-    st.markdown('<div class="subsection-title">Tablero de Resultados</div>', unsafe_allow_html=True)
-    st.markdown('<div class="table-shell">', unsafe_allow_html=True)
-    st.dataframe(
-        controles_df,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "modulo_numero": st.column_config.NumberColumn("#", width="small"),
-            "modulo_nombre": st.column_config.TextColumn("Modulo", width="medium"),
-            "etapa": st.column_config.TextColumn("Etapa", width="small"),
-            "ponderacion": st.column_config.TextColumn("Ponderacion", width="small"),
-            "score_cumplimiento": st.column_config.TextColumn("% Cumplimiento", width="small"),
-            "resultado_final": st.column_config.TextColumn("Resultado", width="small"),
-            "total_items": st.column_config.NumberColumn("Total", width="small"),
-            "items_observacion": st.column_config.NumberColumn("Observados", width="small"),
-        },
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
-
+    mini_kpi_row([
+        ("Empresa", str(audit.get("empresa") or "-")),
+        ("Sucursal", str(audit.get("sucursal") or "-")),
+        ("Fecha", pretty_date(audit.get("fecha_realizacion"))),
+        ("Modulos", str(len([item for item in audit["controles"] if item["modulo_numero"] in MODULOS_ACTIVOS]))),
+    ])
     payload = build_report_payload(audit)
     html_report = build_report_html(audit)
     import json
@@ -1350,13 +1562,62 @@ def render_operacion(audits: list[dict]) -> None:
         mime="text/html",
         use_container_width=True,
     )
-
-    render_transfer_section(audit, 1)
-    render_creditos_section(audit)
-    render_manual_modules(audit)
-    render_ventas_section(audit)
-    render_transfer_section(audit, 9)
-    render_close_section(audit)
+    nav_col, content_col = st.columns([1, 4])
+    module_options = [
+        (1, "Indicador 1"),
+        (2, "Indicador 2"),
+        (3, "Indicador 3"),
+        (4, "Indicador 4"),
+        (7, "Indicador 5"),
+        (8, "Indicador 6"),
+        (9, "Indicador 7"),
+        ("resumen", "Resumen"),
+    ]
+    with nav_col:
+        for module_value, label in module_options:
+            if st.session_state.get("operation_module") == module_value:
+                st.markdown(f'<div class="indicator-nav-active">{html.escape(label)}</div>', unsafe_allow_html=True)
+            else:
+                if st.button(label, key=f"operation_module_{module_value}", use_container_width=True):
+                    st.session_state["operation_module"] = module_value
+                    st.rerun()
+    with content_col:
+        st.markdown('<div class="indicator-screen-card">', unsafe_allow_html=True)
+        active_module = st.session_state.get("operation_module", 1)
+        if active_module == 1:
+            render_transfer_section(audit, 1)
+        elif active_module == 2:
+            render_creditos_section(audit)
+        elif active_module in (3, 4, 7):
+            control = next((item for item in audit["controles"] if item["modulo_numero"] == active_module), None)
+            if control:
+                st.markdown(f"<h3>{html.escape(control['modulo_nombre'])}</h3>", unsafe_allow_html=True)
+                st.markdown('<div class="helper-text">Carga el porcentaje de cumplimiento parametrizado para este indicador manual.</div>', unsafe_allow_html=True)
+                summary_cols = st.columns(3)
+                summary_cols[0].markdown(f'<div class="summary-card"><span>Ponderacion</span><strong>{html.escape(fmt_percent(control.get("ponderacion")))}</strong></div>', unsafe_allow_html=True)
+                summary_cols[1].markdown(f'<div class="summary-card"><span>% Cumplimiento</span><strong>{html.escape(fmt_percent(control.get("score_cumplimiento")))}</strong></div>', unsafe_allow_html=True)
+                summary_cols[2].markdown(f'<div class="summary-card"><span>Resultado</span><strong>{html.escape(fmt_percent(control.get("resultado_final")))}</strong></div>', unsafe_allow_html=True)
+                percent = st.number_input(
+                    "% de cumplimiento",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=float((control.get("score_cumplimiento") or 0) * 100),
+                    step=0.5,
+                    key=f"manual_score_{control['id']}",
+                )
+                if st.button("Guardar modulo", key=f"save_{control['id']}"):
+                    update_manual_control(control["id"], float(percent))
+                    st.success("Modulo actualizado.")
+                    st.rerun()
+        elif active_module == 8:
+            render_ventas_section(audit)
+        elif active_module == 9:
+            render_transfer_section(audit, 9)
+        else:
+            st.markdown("<h3>Resumen de Auditoria</h3>", unsafe_allow_html=True)
+            st.markdown('<div class="helper-text">Desglose por indicador, hallazgos, recomendaciones y cierre operativo.</div>', unsafe_allow_html=True)
+            render_close_section(audit)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def main() -> None:
