@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+import html
 
 import pandas as pd
 import streamlit as st
@@ -70,28 +71,81 @@ def inject_styles() -> None:
             letter-spacing: .08em;
             font-weight: 700;
         }
-        [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {
-            border: 1px solid rgba(255,255,255,0.18);
-            background: rgba(255,255,255,0.05);
-            padding: 10px 12px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            transition: all .18s ease;
+        [data-testid="stSidebar"] [role="radiogroup"] {
+            display:flex;
+            flex-direction:column;
+            gap:10px;
         }
-        [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label:hover {
-            background: rgba(255,255,255,0.12);
-            border-color: rgba(199,210,254,.75);
+        [data-testid="stSidebar"] [role="radiogroup"] label {
+            margin:0 !important;
+            padding:0 !important;
+            background:none !important;
+            border:none !important;
         }
-        [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label[data-checked="true"] {
-            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-            border-color: #a5b4fc;
-            box-shadow: 0 6px 16px rgba(79,70,229,.28);
+        [data-testid="stSidebar"] [role="radiogroup"] label > div {
+            width:100%;
+            min-height:48px;
+            display:flex;
+            align-items:center;
+            gap:10px;
+            border-radius:12px;
+            border:1px solid rgba(255,255,255,0.18);
+            background:rgba(255,255,255,0.05);
+            padding:0 14px;
+            transition:all .18s ease;
+        }
+        [data-testid="stSidebar"] [role="radiogroup"] label > div:hover {
+            background:rgba(255,255,255,0.12);
+            border-color:rgba(199,210,254,.75);
+        }
+        [data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) > div {
+            background:linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            border-color:#a5b4fc;
+            box-shadow:0 6px 16px rgba(79,70,229,.28);
+        }
+        [data-testid="stSidebar"] [role="radiogroup"] label p {
+            color:#ecf1ff !important;
+            font-size:15px !important;
+            font-weight:700 !important;
+        }
+        [data-testid="stSidebar"] [role="radiogroup"] label input {
+            accent-color:#fb7185;
+            transform:scale(1.05);
         }
         [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] > div {
             background: rgba(255,255,255,0.08);
             border: 1px solid rgba(199, 210, 254, 0.35);
             border-radius: 12px;
             min-height: 46px;
+        }
+        .sidebar-group-title {
+            color:#c7d3f8;
+            font-size:12px;
+            text-transform:uppercase;
+            letter-spacing:.08em;
+            font-weight:800;
+            margin:18px 0 10px;
+        }
+        [data-testid="stSidebar"] .stButton > button {
+            width:100%;
+            justify-content:flex-start;
+            text-align:left;
+            min-height:46px;
+            border-radius:12px !important;
+            border:1px solid rgba(255,255,255,0.18) !important;
+            background:rgba(255,255,255,0.05) !important;
+            color:#ecf1ff !important;
+            box-shadow:none !important;
+            padding:0 14px !important;
+        }
+        [data-testid="stSidebar"] .stButton > button:hover {
+            background:rgba(255,255,255,0.12) !important;
+            border-color:rgba(199,210,254,.75) !important;
+        }
+        [data-testid="stSidebar"] .stButton > button[data-active="true"] {
+            background:linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+            border-color:#a5b4fc !important;
+            box-shadow:0 6px 16px rgba(79,70,229,.28) !important;
         }
         .hero-card, .metric-card, .table-card, .surface-card {
             background: white;
@@ -180,12 +234,6 @@ def inject_styles() -> None:
             box-shadow: 0 6px 18px rgba(15,23,42,.05);
             background: white;
         }
-        .mini-kpi-grid {
-            display:grid;
-            grid-template-columns: repeat(auto-fit,minmax(160px,1fr));
-            gap:12px;
-            margin-bottom:12px;
-        }
         .mini-kpi {
             background:#f8fbff;
             border:1px solid #dbe4f2;
@@ -211,6 +259,107 @@ def inject_styles() -> None:
             border-radius:18px;
             padding:12px;
             box-shadow:0 8px 20px rgba(15,23,42,.05);
+        }
+        .table-shell + .table-shell {
+            margin-top: 14px;
+        }
+        .readonly-table-wrap {
+            overflow-x:auto;
+            border:1px solid #dbe4f2;
+            border-radius:14px;
+            background:#fff;
+        }
+        .readonly-table {
+            width:100%;
+            min-width:780px;
+            border-collapse:collapse;
+            background:#fff;
+        }
+        .readonly-table thead {
+            background:#f4f7fd;
+        }
+        .readonly-table th {
+            color:#0f172a;
+            font-weight:800;
+            padding:12px 12px;
+            text-align:left;
+            font-size:12px;
+            text-transform:uppercase;
+            letter-spacing:.05em;
+            border-bottom:1px solid #dbe4f2;
+            white-space:nowrap;
+        }
+        .readonly-table td {
+            padding:12px 12px;
+            color:#1f2937;
+            font-size:14px;
+            border-bottom:1px solid #e7edf7;
+            vertical-align:middle;
+        }
+        .readonly-table tbody tr:nth-child(even) {
+            background:#fcfdff;
+        }
+        .readonly-table tbody tr:hover {
+            background:#f7faff;
+        }
+        .cell-code {
+            font-weight:800;
+            color:#1f2a6b;
+        }
+        .score-pill,
+        .status-pill {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            border-radius:999px;
+            padding:6px 10px;
+            font-weight:700;
+            font-size:12px;
+            white-space:nowrap;
+        }
+        .score-pill {
+            background:#eef2ff;
+            color:#3730a3;
+        }
+        .status-pill.status-completada {
+            background:#dcfce7;
+            color:#166534;
+        }
+        .status-pill.status-en-progreso {
+            background:#fef3c7;
+            color:#92400e;
+        }
+        .status-pill.status-default {
+            background:#e2e8f0;
+            color:#334155;
+        }
+        .sidebar-session {
+            background: rgba(255,255,255,.1);
+            border-radius: 12px;
+            padding: 10px 12px;
+            border: 1px solid rgba(255,255,255,.12);
+        }
+        .sidebar-session-label {
+            font-size:12px;
+            color:#c7d3f8;
+            text-transform:uppercase;
+            letter-spacing:.08em;
+            font-weight:700;
+        }
+        .sidebar-session-name {
+            font-size:14px;
+            color:#fff;
+            font-weight:700;
+            margin-top:6px;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+        .sidebar-audit {
+            margin-top:10px;
+            font-size:13px;
+            color:#c7d3f8;
+            line-height:1.4;
         }
         .stButton > button, .stDownloadButton > button {
             border-radius: 11px !important;
@@ -298,6 +447,43 @@ def pretty_score(value: object) -> str:
     if pd.isna(numeric):
         return "-"
     return fmt_percent(numeric)
+
+
+def score_pill(value: object) -> str:
+    return f'<span class="score-pill">{html.escape(pretty_score(value))}</span>'
+
+
+def status_pill(value: object) -> str:
+    label = pretty_status(value)
+    raw = str(value or "").strip().lower().replace("_", "-")
+    cls = "status-default"
+    if raw == "completada":
+        cls = "status-completada"
+    elif raw == "en-progreso":
+        cls = "status-en-progreso"
+    return f'<span class="status-pill {cls}">{html.escape(label)}</span>'
+
+
+def render_readonly_table(rows: list[dict[str, str]], columns: list[tuple[str, str]]) -> None:
+    head = "".join(f"<th>{html.escape(label)}</th>" for _, label in columns)
+    body_rows: list[str] = []
+    for row in rows:
+        cells = "".join(f"<td>{row.get(key, '-')}</td>" for key, _ in columns)
+        body_rows.append(f"<tr>{cells}</tr>")
+    body = "".join(body_rows) if body_rows else f"<tr><td colspan='{len(columns)}'>Sin datos.</td></tr>"
+    st.markdown(
+        f"""
+        <div class="table-shell">
+            <div class="readonly-table-wrap">
+                <table class="readonly-table">
+                    <thead><tr>{head}</tr></thead>
+                    <tbody>{body}</tbody>
+                </table>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def metric_card(label: str, value: str, sub: str = "", primary: bool = False) -> None:
@@ -507,12 +693,14 @@ def render_sidebar(audits: list[dict]) -> None:
         st.markdown("## Control Integral")
         st.caption("Grupo Cenoa")
         st.selectbox("Auditor activo", AUDITORES_DEFAULT, key="auditor_nombre")
+        st.markdown('<div class="sidebar-group-title">Secciones</div>', unsafe_allow_html=True)
         st.session_state["section"] = st.radio(
             "Secciones",
             ["Dashboard", "Nueva Auditoria", "Configuracion", "Auditorias", "Informes", "Operacion"],
             index=["Dashboard", "Nueva Auditoria", "Configuracion", "Auditorias", "Informes", "Operacion"].index(
                 st.session_state["section"]
             ),
+            label_visibility="collapsed",
         )
         if audits:
             options = {
@@ -528,11 +716,13 @@ def render_sidebar(audits: list[dict]) -> None:
             st.session_state["selected_audit_id"] = options[selected_label]
         else:
             st.info("Sin auditorias activas.")
+            selected_label = "Sin auditoria activa"
         st.markdown(
             f"""
-            <div class="surface-card" style="background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.14); padding:12px 14px;">
-                <div style="font-size:12px; color:#c7d3f8; text-transform:uppercase; letter-spacing:.08em; font-weight:700;">Sesion</div>
-                <div style="font-size:14px; color:#fff; font-weight:700; margin-top:6px;">{st.session_state['auditor_nombre']}</div>
+            <div class="sidebar-session">
+                <div class="sidebar-session-label">Sesion</div>
+                <div class="sidebar-session-name">{html.escape(pretty_text(st.session_state['auditor_nombre']))}</div>
+                <div class="sidebar-audit">{html.escape(pretty_text(selected_label, default='Sin auditoria activa'))}</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -598,15 +788,31 @@ def render_dashboard(audits: list[dict]) -> None:
     if audits:
         st.markdown('<div class="subsection-title">Base de Auditorias</div>', unsafe_allow_html=True)
         df = pd.DataFrame(audits)
-        visible = df[["codigo", "empresa", "sucursal", "auditor_nombre", "estado", "score_final", "calificacion"]].copy()
-        visible["codigo"] = visible["codigo"].map(pretty_text)
-        visible["empresa"] = visible["empresa"].map(pretty_text)
-        visible["sucursal"] = visible["sucursal"].map(pretty_text)
-        visible["auditor_nombre"] = visible["auditor_nombre"].map(pretty_text)
-        visible["estado"] = visible["estado"].map(pretty_status)
-        visible["score_final"] = visible["score_final"].map(pretty_score)
-        visible["calificacion"] = visible["calificacion"].map(pretty_text)
-        st.dataframe(visible, use_container_width=True, hide_index=True)
+        rows = []
+        for _, item in df.iterrows():
+            rows.append(
+                {
+                    "codigo": f'<span class="cell-code">{html.escape(pretty_text(item.get("codigo")))}</span>',
+                    "empresa": html.escape(pretty_text(item.get("empresa"))),
+                    "sucursal": html.escape(pretty_text(item.get("sucursal"))),
+                    "auditor_nombre": html.escape(pretty_text(item.get("auditor_nombre"))),
+                    "estado": status_pill(item.get("estado")),
+                    "score_final": score_pill(item.get("score_final")),
+                    "calificacion": html.escape(pretty_text(item.get("calificacion"))),
+                }
+            )
+        render_readonly_table(
+            rows,
+            [
+                ("codigo", "Codigo"),
+                ("empresa", "Empresa"),
+                ("sucursal", "Sucursal"),
+                ("auditor_nombre", "Auditor"),
+                ("estado", "Estado"),
+                ("score_final", "Score"),
+                ("calificacion", "Calificacion"),
+            ],
+        )
 
 
 def render_new_audit() -> None:
@@ -701,32 +907,33 @@ def render_auditorias(audits: list[dict]) -> None:
         ("En progreso", str(int((df["estado"] == "en_progreso").sum()))),
         ("Score promedio", fmt_percent(pd.to_numeric(df["score_final"], errors="coerce").fillna(0).mean())),
     ])
-    visible = df[["codigo", "empresa", "sucursal", "auditor_nombre", "estado", "score_final", "calificacion", "fecha_realizacion"]].copy()
-    visible["codigo"] = visible["codigo"].map(pretty_text)
-    visible["empresa"] = visible["empresa"].map(pretty_text)
-    visible["sucursal"] = visible["sucursal"].map(pretty_text)
-    visible["auditor_nombre"] = visible["auditor_nombre"].map(pretty_text)
-    visible["estado"] = visible["estado"].map(pretty_status)
-    visible["score_final"] = visible["score_final"].map(pretty_score)
-    visible["calificacion"] = visible["calificacion"].map(pretty_text)
-    visible["fecha_realizacion"] = visible["fecha_realizacion"].map(pretty_date)
-    st.markdown('<div class="table-shell">', unsafe_allow_html=True)
-    st.dataframe(
-        visible,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "codigo": st.column_config.TextColumn("Codigo", width="small"),
-            "empresa": st.column_config.TextColumn("Empresa", width="medium"),
-            "sucursal": st.column_config.TextColumn("Sucursal", width="medium"),
-            "auditor_nombre": st.column_config.TextColumn("Auditor", width="medium"),
-            "estado": st.column_config.TextColumn("Estado", width="small"),
-            "score_final": st.column_config.TextColumn("Score", width="small"),
-            "calificacion": st.column_config.TextColumn("Calificacion", width="medium"),
-            "fecha_realizacion": st.column_config.TextColumn("Fecha", width="small"),
-        },
+    rows = []
+    for _, item in df.iterrows():
+        rows.append(
+            {
+                "codigo": f'<span class="cell-code">{html.escape(pretty_text(item.get("codigo")))}</span>',
+                "empresa": html.escape(pretty_text(item.get("empresa"))),
+                "sucursal": html.escape(pretty_text(item.get("sucursal"))),
+                "auditor_nombre": html.escape(pretty_text(item.get("auditor_nombre"))),
+                "estado": status_pill(item.get("estado")),
+                "score_final": score_pill(item.get("score_final")),
+                "calificacion": html.escape(pretty_text(item.get("calificacion"))),
+                "fecha_realizacion": html.escape(pretty_date(item.get("fecha_realizacion"))),
+            }
+        )
+    render_readonly_table(
+        rows,
+        [
+            ("codigo", "Codigo"),
+            ("empresa", "Empresa"),
+            ("sucursal", "Sucursal"),
+            ("auditor_nombre", "Auditor"),
+            ("estado", "Estado"),
+            ("score_final", "Score"),
+            ("calificacion", "Calificacion"),
+            ("fecha_realizacion", "Fecha"),
+        ],
     )
-    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_informes() -> None:
@@ -743,30 +950,31 @@ def render_informes() -> None:
         ("Hallazgos", str(sum(len(parse_json_list(item)) for item in df["hallazgos"].fillna("")))),
         ("Recomendaciones", str(sum(len(parse_json_list(item)) for item in df["recomendaciones"].fillna("")))),
     ])
-    visible = df[["codigo", "empresa", "sucursal", "auditor_nombre", "fecha_cierre", "score_final", "calificacion"]].copy()
-    visible["codigo"] = visible["codigo"].map(pretty_text)
-    visible["empresa"] = visible["empresa"].map(pretty_text)
-    visible["sucursal"] = visible["sucursal"].map(pretty_text)
-    visible["auditor_nombre"] = visible["auditor_nombre"].map(pretty_text)
-    visible["fecha_cierre"] = visible["fecha_cierre"].map(pretty_date)
-    visible["score_final"] = visible["score_final"].map(pretty_score)
-    visible["calificacion"] = visible["calificacion"].map(pretty_text)
-    st.markdown('<div class="table-shell">', unsafe_allow_html=True)
-    st.dataframe(
-        visible,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "codigo": st.column_config.TextColumn("Codigo", width="small"),
-            "empresa": st.column_config.TextColumn("Empresa", width="medium"),
-            "sucursal": st.column_config.TextColumn("Sucursal", width="medium"),
-            "auditor_nombre": st.column_config.TextColumn("Auditor", width="medium"),
-            "fecha_cierre": st.column_config.TextColumn("Cierre", width="small"),
-            "score_final": st.column_config.TextColumn("Score", width="small"),
-            "calificacion": st.column_config.TextColumn("Calificacion", width="medium"),
-        },
+    rows = []
+    for _, item in df.iterrows():
+        rows.append(
+            {
+                "codigo": f'<span class="cell-code">{html.escape(pretty_text(item.get("codigo")))}</span>',
+                "empresa": html.escape(pretty_text(item.get("empresa"))),
+                "sucursal": html.escape(pretty_text(item.get("sucursal"))),
+                "auditor_nombre": html.escape(pretty_text(item.get("auditor_nombre"))),
+                "fecha_cierre": html.escape(pretty_date(item.get("fecha_cierre"))),
+                "score_final": score_pill(item.get("score_final")),
+                "calificacion": html.escape(pretty_text(item.get("calificacion"))),
+            }
+        )
+    render_readonly_table(
+        rows,
+        [
+            ("codigo", "Codigo"),
+            ("empresa", "Empresa"),
+            ("sucursal", "Sucursal"),
+            ("auditor_nombre", "Auditor"),
+            ("fecha_cierre", "Cierre"),
+            ("score_final", "Score"),
+            ("calificacion", "Calificacion"),
+        ],
     )
-    st.markdown('</div>', unsafe_allow_html=True)
 
     options = {f"{item['codigo']} | {item.get('empresa', '-')} | {item.get('sucursal', '-')}": item["id"] for item in reports}
     selected = st.selectbox("Informe seleccionado", list(options.keys()), key="report_select")
