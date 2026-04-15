@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.streamlit/secrets.toml
+
+backend/node_modules/
+
+data/*.db-shm
+data/*.db-wal
+backend/db/*.db-shm
+backend/db/*.db-wal

@@ -1,0 +1,26 @@
+#!/bin/bash
+# QUICKSTART - Inicia todo en 30 segundos
+
+echo "========================================"
+echo "Control Integral de Depósitos"
+echo "Iniciando Sistema..."
+echo "========================================"
+
+echo ""
+echo "✅ Backend ya está corriendo en puerto 5000"
+echo ""
+echo "Ahora inicia el Frontend:"
+echo ""
+echo "Abre una NUEVA terminal PowerShell y corre:"
+echo ""
+echo "  cd frontend"
+echo "  python -m http.server 3000"
+echo ""
+echo "Luego abre en tu navegador:"
+echo "  http://localhost:3000"
+echo ""
+echo "========================================"
+echo "Para detener el sistema:"
+echo "  - Backend: presiona Ctrl+C en su terminal"
+echo "  - Frontend: presiona Ctrl+C en su terminal"
+echo "========================================"

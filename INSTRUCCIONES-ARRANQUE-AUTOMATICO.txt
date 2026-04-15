@@ -1,0 +1,86 @@
+INSTRUCCIONES PARA ARRANQUE AUTOMÁTICO DE LA APLICACIÓN
+=======================================================
+
+Para que el servidor arranque automáticamente al iniciar Windows (sin depender de VS Code),
+sigue estos pasos:
+
+OPCIÓN 1: Ejecución automática (recomendado)
+==========================================
+
+1. Abre "Símbolo del Sistema" como ADMINISTRADOR
+   - Presiona Windows + R
+   - Escribe: cmd
+   - Presiona Ctrl + Shift + Enter para abrir como Administrador
+
+2. Copia y pega estos comandos (línea por línea):
+
+   schtasks /create /tn "ControlDepositos-SistemaArranque" /tr "C:\Users\Usuario\Documents\GitHub\Control-Depositos\INICIO-SERVIDOR-SISTEMA.bat" /sc onstart /rl highest /f
+
+3. Presiona Enter y espera a que aparezca:
+   "Aviso: Tarea creada correctamente"
+
+4. Verifica que se haya creado:
+   schtasks /query /tn "ControlDepositos-SistemaArranque"
+
+5. ¡Listo! Ahora cada vez que reinicies Windows, el servidor arrancará automáticamente.
+
+
+OPCIÓN 2: Ejecución manual (si tienes el archivo .bat)
+=====================================================
+
+1. Abre "Símbolo del Sistema" como ADMINISTRADOR
+2. Ejecuta el archivo batch que se encuentra en:
+   C:\Users\Usuario\Documents\GitHub\Control-Depositos\Registrar-Tarea-Arranque.bat
+   
+3. El script automáticamente registrará la tarea.
+
+
+OPCIÓN 3: Interfaz gráfica del Programador de Tareas
+====================================================
+
+1. Abre el Programador de Tareas (busca "Programador de Tareas" en Windows)
+2. Haz clic en "Crear tarea"
+3. Completa los campos:
+   - Nombre: ControlDepositos-SistemaArranque
+   - Pestaña "Disparadores": 
+     * Nuevo disparador
+     * Tipo: "Al iniciar el equipo"
+   - Pestaña "Acciones":
+     * Nueva acción
+     * Programa: C:\Users\Usuario\Documents\GitHub\Control-Depositos\INICIO-SERVIDOR-SISTEMA.bat
+   - Pestaña "General":
+     * Marcar "Ejecutar con los privilegios más altos"
+4. Haz clic en OK
+
+
+CÓMO VERIFICAR QUE FUNCIONA
+===========================
+
+Después de configurar, reinicia tu PC y esperando el servidor esté disponible en:
+- http://localhost:5000 (desde la PC servidor)
+- http://IP_DE_TU_PC:5000 (desde otras PCs de la red)
+
+Si después de reiniciar la app no está disponible, revisa el archivo de log:
+C:\Users\Usuario\Documents\GitHub\Control-Depositos\backend\server.log
+
+
+DESACTIVAR EL ARRANQUE AUTOMÁTICO
+==================================
+
+Si en el futuro quieres desactivarlo, abre un "Símbolo del Sistema" como 
+ADMINISTRADOR y ejecuta:
+
+   schtasks /delete /tn "ControlDepositos-SistemaArranque" /f
+
+
+NOTAS TÉCNICAS
+==============
+
+- El script batch: INICIO-SERVIDOR-SISTEMA.bat
+  Inicia Node.js directamente sin depender de npm ni de PM2.
+  
+- El log del servidor se guarda en: backend\server.log
+  Si hay errores, revísalo para diagnosticar problemas.
+
+- El archivo se ejecuta con nivel de privilegios SYSTEM (más alto que Administrador).
+  Esto asegura que arranque incluso si nadie está conectado a Windows.

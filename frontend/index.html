@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Integral de Depósitos - Auditoría</title>
+    <link rel="stylesheet" href="styles.css?v=20260325d">
+</head>
+<body>
+    <!-- Modal de identificación de auditor -->
+    <div id="login-modal" class="login-overlay" style="display:none">
+        <div class="login-box">
+            <div class="login-logo">
+                <h2>Control Integral</h2>
+                <p>Grupo Cenoa</p>
+            </div>
+            <div class="login-body">
+                <h3>Identificate para continuar</h3>
+                <p class="login-hint">Tu nombre quedará registrado en las auditorías que realices.</p>
+                    <select id="login-nombre-select" class="login-input" aria-label="Seleccionar auditor">
+                        <option value="">Seleccionar auditor...</option>
+                    </select>
+                <button class="btn btn-primary login-btn" onclick="confirmarAuditor()">Ingresar &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <h1>Control Integral</h1>
+                <p>Grupo Cenoa</p>
+            </div>
+            <nav class="side-nav">
+                <button class="side-btn active" onclick="showSection('dashboard', this)">Dashboard</button>
+                <button class="side-btn" onclick="showSection('nueva-auditoria', this)">Nueva Auditoría</button>
+                <button class="side-btn" onclick="showSection('configuracion', this)">Configuración</button>
+                <button class="side-btn" onclick="showSection('auditorias', this)">Auditorías</button>
+                <button class="side-btn" onclick="showSection('informes', this)">Informes</button>
+                <button id="menu-indicadores" class="side-btn" onclick="showSection('indicadores', this)" disabled>Indicadores</button>
+                <button id="menu-resumen" class="side-btn" onclick="showSection('resumen-auditoria', this)" disabled>Resumen</button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="auditor-sesion">
+                    <span class="auditor-icon">&#128100;</span>
+                    <span id="auditor-sesion-label" class="auditor-nombre">&#8212;</span>
+                    <button class="side-change-btn" onclick="cambiarAuditor()" title="Cambiar auditor">&#8635;</button>
+                </div>
+                <span id="selected-audit-label">Sin auditoría activa</span>
+                <button id="theme-toggle-btn" class="side-theme-btn" onclick="toggleTheme()">🌙 Modo oscuro</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <section id="dashboard" class="section active">
+                <h2>Estado General</h2>
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <h3>Auditorías Totales</h3>
+                        <p class="stat-number" id="total-auditorias">0</p>
+                        <p class="stat-meta">Base histórica del tablero</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Auditorías (últimos 30 días)</h3>
+                        <p class="stat-number" id="auditorias-30d">0</p>
+                        <p class="stat-meta">Ritmo reciente de gestión</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>% Cierre</h3>
+                        <p class="stat-number" id="tasa-cierre">-</p>
+                        <p class="stat-meta">Completadas sobre total</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Cobertura de Empresas</h3>
+                        <p class="stat-number" id="cobertura-empresas">-</p>
+                        <p class="stat-meta">Empresas auditadas vs configuradas</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Score Promedio</h3>
+                        <p class="stat-number" id="score-promedio">-</p>
+                        <p class="stat-meta">Rendimiento global ponderado</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Mediana Score</h3>
+                        <p class="stat-number" id="mediana-score">-</p>
+                        <p class="stat-meta">Comportamiento central del sistema</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Desviación Score</h3>
+                        <p class="stat-number" id="desviacion-score">-</p>
+                        <p class="stat-meta">Variabilidad entre auditorías</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Brecha Mejor/Peor</h3>
+                        <p class="stat-number" id="brecha-score">-</p>
+                        <p class="stat-meta">Diferencial de desempeño</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Riesgo Alto</h3>
+                        <p class="stat-number" id="riesgo-alto">0</p>
+                        <p class="stat-meta" id="riesgo-alto-meta">0.0% del total</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Backlog Crítico</h3>
+                        <p class="stat-number" id="backlog-critico">0</p>
+                        <p class="stat-meta">En progreso &gt; 30 días y bajo score</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Completitud de Score</h3>
+                        <p class="stat-number" id="completitud-score">-</p>
+                        <p class="stat-meta">Auditorías con score registrado</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Concentración por Empresa</h3>
+                        <p class="stat-number" id="concentracion-empresa">-</p>
+                        <p class="stat-meta" id="top-empresa-label">Mayor participación por empresa</p>
+                    </div>
+                </div>
+
+                <div class="executive-traffic">
+                    <div class="traffic-header">
+                        <h3>Semáforo Ejecutivo</h3>
+                        <p>Lectura rápida para Dirección con umbrales de control definidos.</p>
+                    </div>
+                    <div class="traffic-grid">
+                        <div class="traffic-card">
+                            <h4>Cierre Operativo</h4>
+                            <p class="traffic-value" id="semaforo-cierre-valor">-</p>
+                            <span class="status-chip neutral" id="semaforo-cierre-estado">Sin datos</span>
+                        </div>
+                        <div class="traffic-card">
+                            <h4>Rendimiento Global</h4>
+                            <p class="traffic-value" id="semaforo-score-valor">-</p>
+                            <span class="status-chip neutral" id="semaforo-score-estado">Sin datos</span>
+                        </div>
+                        <div class="traffic-card">
+                            <h4>Exposición a Riesgo</h4>
+                            <p class="traffic-value" id="semaforo-riesgo-valor">-</p>
+                            <span class="status-chip neutral" id="semaforo-riesgo-estado">Sin datos</span>
+                        </div>
+                        <div class="traffic-card">
+                            <h4>Cobertura Corporativa</h4>
+                            <p class="traffic-value" id="semaforo-cobertura-valor">-</p>
+                            <span class="status-chip neutral" id="semaforo-cobertura-estado">Sin datos</span>
+                        </div>
+                        <div class="traffic-card">
+                            <h4>Backlog Crítico</h4>
+                            <p class="traffic-value" id="semaforo-backlog-valor">-</p>
+                            <span class="status-chip neutral" id="semaforo-backlog-estado">Sin datos</span>
+                        </div>
+                        <div class="traffic-card">
+                            <h4>Calidad de Información</h4>
+                            <p class="traffic-value" id="semaforo-completitud-valor">-</p>
+                            <span class="status-chip neutral" id="semaforo-completitud-estado">Sin datos</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-analytics">
+                    <div class="chart-card">
+                        <h3>Tendencia de Score (últimas 12 auditorías)</h3>
+                        <canvas id="chart-score-trend"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Benchmark de Score por Empresa</h3>
+                        <canvas id="chart-score-empresa"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Distribución de Estado Operativo</h3>
+                        <canvas id="chart-estado"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="nueva-auditoria" class="section">
+                <h2>Crear Nueva Auditoría</h2>
+                <form id="form-auditoria" onsubmit="crearAuditoria(event)">
+                    <div class="form-group">
+                        <label>Código de Auditoría:</label>
+                        <input type="text" id="codigo" placeholder="ej: PROG-858" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Auditor:</label>
+                        <input type="text" id="auditor" placeholder="Nombre del auditor" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Empresa:</label>
+                        <select id="empresa" required>
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Sucursal:</label>
+                        <select id="sucursal" required>
+                            <option value="">-- Seleccionar --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha de Realización:</label>
+                        <input type="date" id="fecha" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Crear Auditoría</button>
+                </form>
+            </section>
+
+            <section id="configuracion" class="section">
+                <h2>Configuración</h2>
+                <p class="helper-text">Gestiona ponderaciones, empresa por defecto y sucursales en una vista centralizada.</p>
+
+                <div class="config-grid">
+                    <div class="config-card">
+                        <h3>Ponderaciones de indicadores</h3>
+                        <div class="table-wrapper">
+                            <table class="resumen-table">
+                                <thead>
+                                    <tr>
+                                        <th>Indicador</th>
+                                        <th>Ponderación (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="config-ponderaciones-tabla">
+                                    <tr><td colspan="2">Cargando...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <h3>Empresa por defecto</h3>
+                        <div class="form-group">
+                            <label>Empresa:</label>
+                            <select id="config-empresa-default"></select>
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <h3>Sucursales</h3>
+                        <div class="form-group">
+                            <label>Empresa:</label>
+                            <select id="config-empresa-sucursales" onchange="renderConfigSucursales()"></select>
+                        </div>
+                        <div class="config-inline-row">
+                            <input id="config-nueva-sucursal" type="text" placeholder="Nueva sucursal">
+                            <button type="button" class="btn btn-secondary" onclick="agregarSucursalConfig()">Agregar</button>
+                        </div>
+                        <div id="config-sucursales-lista" class="config-list"></div>
+                    </div>
+                </div>
+
+                <div class="config-actions">
+                    <button type="button" class="btn btn-primary" onclick="guardarConfiguracion()">Guardar configuración</button>
+                </div>
+            </section>
+
+            <section id="auditorias" class="section">
+                <h2>Auditorías Registradas</h2>
+                <p class="helper-text">Historial completo de auditorías. Haz clic en Abrir para cargar indicadores.</p>
+
+                <div class="informes-filtros">
+                    <input type="text" id="aud-filtro-texto" placeholder="Buscar por código, empresa, sucursal o auditor..." oninput="filtrarAuditorias()">
+                    <select id="aud-filtro-empresa" onchange="filtrarAuditorias()">
+                        <option value="">Todas las empresas</option>
+                    </select>
+                    <select id="aud-filtro-estado" onchange="filtrarAuditorias()">
+                        <option value="">Todos los estados</option>
+                        <option value="en_progreso">En progreso</option>
+                        <option value="completada">Completada</option>
+                    </select>
+                    <input type="date" id="aud-filtro-desde" title="Fecha desde" onchange="filtrarAuditorias()">
+                    <input type="date" id="aud-filtro-hasta" title="Fecha hasta" onchange="filtrarAuditorias()">
+                    <button class="btn btn-secondary" onclick="limpiarFiltrosAuditorias()">Limpiar filtros</button>
+                    <span class="informes-conteo" id="aud-conteo"></span>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="resumen-table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Empresa</th>
+                                <th>Sucursal</th>
+                                <th>Auditor</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Score</th>
+                                <th>Calificación</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lista-auditorias">
+                            <tr><td colspan="9">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="informes" class="section">
+                <h2>Informes</h2>
+                <p class="helper-text">Se almacenan todos los informes de auditorías cerradas para consulta y descarga.</p>
+
+                <div class="informes-filtros">
+                    <input type="text" id="filtro-codigo" placeholder="Buscar por código, empresa o sucursal..." oninput="filtrarInformes()">
+                    <select id="filtro-empresa" onchange="filtrarInformes()">
+                        <option value="">Todas las empresas</option>
+                    </select>
+                    <select id="filtro-calificacion" onchange="filtrarInformes()">
+                        <option value="">Toda calificación</option>
+                        <option value="SAT">SAT - Satisfactorio</option>
+                        <option value="ADE">ADE - Adecuado</option>
+                        <option value="SUJ">SUJ - Sujeto a mejora</option>
+                        <option value="NAD">NAD - No adecuado</option>
+                        <option value="INS">INS - Insatisfactorio</option>
+                    </select>
+                    <input type="date" id="filtro-fecha-desde" title="Fecha desde" onchange="filtrarInformes()">
+                    <input type="date" id="filtro-fecha-hasta" title="Fecha hasta" onchange="filtrarInformes()">
+                    <button class="btn btn-secondary" onclick="limpiarFiltrosInformes()">Limpiar filtros</button>
+                    <span class="informes-conteo" id="informes-conteo"></span>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="resumen-table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Empresa</th>
+                                <th>Sucursal</th>
+                                <th>Auditor</th>
+                                <th>Fecha cierre</th>
+                                <th>Score</th>
+                                <th>Calificación</th>
+                                <th>Hallazgos</th>
+                                <th>Recomendaciones</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="informes-tabla">
+                            <tr><td colspan="10">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="indicadores" class="section">
+                <div class="indicator-header">
+                    <div>
+                        <h2>Pantallas por Indicador</h2>
+                        <p id="indicator-audit-title">Selecciona una auditoría desde el menú Auditorías.</p>
+                    </div>
+                    <button onclick="generarInformeHTML()" class="btn btn-success">Descargar Informe HTML</button>
+                </div>
+
+                <div class="auditoria-info">
+                    <p><strong>Auditor:</strong> <span id="detalle-auditor">-</span></p>
+                    <p><strong>Sucursal:</strong> <span id="detalle-sucursal">-</span></p>
+                    <p><strong>Fecha:</strong> <span id="detalle-fecha">-</span></p>
+                    <p><strong>Estado:</strong> <span id="detalle-estado">-</span></p>
+                    <p><strong>Score Final:</strong> <span id="detalle-score">-</span></p>
+                    <p><strong>Calificación:</strong> <span id="detalle-calificacion">-</span></p>
+                </div>
+
+                <div class="indicator-layout">
+                    <aside class="indicator-menu">
+                        <button class="indicator-btn active" onclick="setIndicatorScreen(1, this)">Indicador 1</button>
+                        <button class="indicator-btn" onclick="setIndicatorScreen(2, this)">Indicador 2</button>
+                        <button class="indicator-btn" onclick="setIndicatorScreen(3, this)">Indicador 3</button>
+                        <button class="indicator-btn" onclick="setIndicatorScreen(4, this)">Indicador 4</button>
+                        <button class="indicator-btn" onclick="setIndicatorScreen(7, this)">Indicador 5</button>
+                        <button class="indicator-btn" onclick="setIndicatorScreen(8, this)">Indicador 6</button>
+                        <button class="indicator-btn" onclick="setIndicatorScreen(9, this)">Indicador 7</button>
+                    </aside>
+
+                    <div class="indicator-content">
+                        <div id="indicator-screen-1" class="indicator-screen active">
+                            <h3>Indicador 1 - Transferencias Pendientes de Recepción</h3>
+                            <p class="helper-text">Importa el Excel de transferencias pendientes para clasificar por sucursal destino.</p>
+                            <div class="transfer-upload-actions">
+                                <input type="file" id="archivo-transferencias" accept=".xlsx,.xls" />
+                                <button onclick="importarTransferencias()" class="btn btn-primary">Importar Excel</button>
+                            </div>
+                            <div class="module-summary" id="transfer-summary-1"></div>
+                            <div class="table-wrapper">
+                                <table class="controles-table transfer-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Comprobante</th>
+                                            <th>Sucursal Origen</th>
+                                            <th>Sucursal Destino</th>
+                                            <th>Días hábiles</th>
+                                            <th>Cumple</th>
+                                            <th>Justificado</th>
+                                            <th>Observación</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transfer-table-1">
+                                        <tr><td colspan="9">Sin datos importados.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="indicator-screen-2" class="indicator-screen">
+                            <h3>Indicador 2 - Pendientes de Crédito</h3>
+                            <p class="helper-text">Importa el reporte y marca por fila si tiene reclamo (Si/No) con observaciones.</p>
+                            <div class="transfer-upload-actions">
+                                <input type="file" id="archivo-creditos" accept=".xlsx,.xls" />
+                                <button onclick="importarCreditos()" class="btn btn-primary">Importar Excel</button>
+                            </div>
+                            <div class="module-summary" id="transfer-summary-2"></div>
+                            <div class="table-wrapper">
+                                <table class="controles-table transfer-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Artículo</th>
+                                            <th>Comprobante</th>
+                                            <th>Cantidad</th>
+                                            <th>Importe</th>
+                                            <th>Reclamo</th>
+                                            <th>Cumple</th>
+                                            <th>Observación</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="creditos-table-2">
+                                        <tr><td colspan="9">Sin datos importados.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="indicator-screen-3" class="indicator-screen indicator-generic">
+                            <h3>Indicador 3 - Remito de Compras</h3>
+                            <div id="generic-summary-3" class="module-summary"></div>
+                            <div class="generic-controls">
+                                <input id="manual-score-3" type="number" min="0" max="100" step="0.01" placeholder="% Cumplimiento">
+                                <button onclick="guardarIndicadorManual(3)" class="btn btn-secondary">Guardar indicador</button>
+                            </div>
+                        </div>
+
+                        <div id="indicator-screen-4" class="indicator-screen indicator-generic">
+                            <h3>Indicador 4 - Resultado Inventario Rotativo</h3>
+                            <div id="generic-summary-4" class="module-summary"></div>
+                            <div class="generic-controls">
+                                <input id="manual-score-4" type="number" min="0" max="100" step="0.01" placeholder="% Cumplimiento">
+                                <button onclick="guardarIndicadorManual(4)" class="btn btn-secondary">Guardar indicador</button>
+                            </div>
+                        </div>
+
+                        <div id="indicator-screen-7" class="indicator-screen indicator-generic">
+                            <h3>Indicador 5 - Remitos Pendientes de Facturación</h3>
+                            <div id="generic-summary-7" class="module-summary"></div>
+                            <div class="generic-controls">
+                                <input id="manual-score-7" type="number" min="0" max="100" step="0.01" placeholder="% Cumplimiento">
+                                <button onclick="guardarIndicadorManual(7)" class="btn btn-secondary">Guardar indicador</button>
+                            </div>
+                        </div>
+
+                        <div id="indicator-screen-8" class="indicator-screen">
+                            <h3>Indicador 6 - Ventas Internas Directas</h3>
+                            <p class="helper-text">Importa el reporte de ventas internas. La muestra se toma solo para Vta. Mostrador: 75% de comprobantes, mínimo 20 (o total si hay menos), ordenados por mayor importe.</p>
+                            <div class="transfer-upload-actions">
+                                <input type="file" id="archivo-ventas-internas" accept=".xlsx,.xls" />
+                                <button onclick="importarVentasInternas()" class="btn btn-primary">Importar Excel</button>
+                                <button onclick="descargarMuestraVentasInternas()" class="btn btn-secondary">Descargar muestra Excel</button>
+                            </div>
+                            <div class="module-summary" id="transfer-summary-8"></div>
+                            <div class="table-wrapper">
+                                <table class="controles-table transfer-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Comprobante</th>
+                                            <th>Nro. Cpbte.</th>
+                                            <th class="col-articulos">Artículos</th>
+                                            <th>Imputación contable</th>
+                                            <th>Importe</th>
+                                            <th>Firma depósito</th>
+                                            <th>Firma gerente/jefe</th>
+                                            <th>Justificado</th>
+                                            <th>Cumple</th>
+                                            <th>Observación</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ventas-internas-table-8">
+                                        <tr><td colspan="12">Sin datos importados.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="indicator-screen-9" class="indicator-screen">
+                            <h3>Indicador 7 - Transferencias Pendientes de Entrega</h3>
+                            <p class="helper-text">Comparte el mismo archivo de transferencias del Indicador 1, clasificado por sucursal origen.</p>
+                            <div class="transfer-upload-actions">
+                                <input type="file" id="archivo-transferencias-9" accept=".xlsx,.xls" />
+                                <button onclick="importarTransferenciasDesdeIndicador9()" class="btn btn-primary">Importar Excel</button>
+                            </div>
+                            <div class="module-summary" id="transfer-summary-9"></div>
+                            <div class="table-wrapper">
+                                <table class="controles-table transfer-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Comprobante</th>
+                                            <th>Sucursal Origen</th>
+                                            <th>Sucursal Destino</th>
+                                            <th>Días hábiles</th>
+                                            <th>Cumple</th>
+                                            <th>Justificado</th>
+                                            <th>Observación</th>
+                                            <th>Acción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="transfer-table-9">
+                                        <tr><td colspan="9">Sin datos importados.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="resumen-auditoria" class="section">
+                <div class="resumen-header">
+                    <h2>Resumen de Auditoría</h2>
+                    <div class="resumen-actions">
+                        <button onclick="exportarInformePDF()" class="btn btn-success">Descargar Informe PDF</button>
+                        <button id="btn-compartir-outlook" onclick="compartirPorOutlook()" class="btn btn-secondary" disabled>Compartir por Outlook</button>
+                    </div>
+                </div>
+
+                <div class="auditoria-info">
+                    <p><strong>Auditoría:</strong> <span id="resumen-codigo">-</span></p>
+                    <p><strong>Auditor:</strong> <span id="resumen-auditor">-</span></p>
+                    <p><strong>Sucursal:</strong> <span id="resumen-sucursal">-</span></p>
+                    <p><strong>Fecha:</strong> <span id="resumen-fecha">-</span></p>
+                    <p><strong>Estado:</strong> <span id="resumen-estado">-</span></p>
+                </div>
+
+                <div class="resumen-content">
+                    <h3>Desglose por Indicador</h3>
+                    <div class="table-wrapper">
+                        <table class="resumen-table">
+                            <thead>
+                                <tr>
+                                    <th>Indicador</th>
+                                    <th>Etapa</th>
+                                    <th>Ponderación</th>
+                                    <th>% Cumplimiento</th>
+                                    <th>Aporte Final</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resumen-indicadores-tabla">
+                                <tr><td colspan="5">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="resumen-totales">
+                        <div class="total-card">
+                            <h4>Score Final</h4>
+                            <p class="score-value" id="resumen-score-final">-</p>
+                        </div>
+                        <div class="total-card">
+                            <h4>Calificación</h4>
+                            <p class="calificacion-value" id="resumen-calificacion">-</p>
+                        </div>
+                    </div>
+
+                    <div class="resumen-cierre">
+                        <h3>Cierre de Auditoría</h3>
+                        <p class="helper-text">Se habilita cuando todos los indicadores tienen su % de cumplimiento guardado.</p>
+                        <div class="resumen-cierre-grid">
+                            <div class="resumen-cierre-panel">
+                                <div class="resumen-cierre-panel-head">
+                                    <h4>Hallazgos</h4>
+                                    <button id="btn-agregar-hallazgo" type="button" class="btn btn-secondary" onclick="agregarHallazgoResumen()">Agregar nuevo hallazgo</button>
+                                </div>
+                                <div id="resumen-hallazgos-lista" class="resumen-cierre-lista"></div>
+                            </div>
+                            <div class="resumen-cierre-panel">
+                                <div class="resumen-cierre-panel-head">
+                                    <h4>Recomendaciones</h4>
+                                    <button id="btn-agregar-recomendacion" type="button" class="btn btn-secondary" onclick="agregarRecomendacionResumen()">Agregar recomendación</button>
+                                </div>
+                                <div id="resumen-recomendaciones-lista" class="resumen-cierre-lista"></div>
+                            </div>
+                        </div>
+                        <div id="resumen-cierre-checklist" class="cierre-checklist" style="display:none;"></div>
+                        <div id="resumen-cierre-motivos" class="cierre-motivos" style="display:none;"></div>
+                        <div class="resumen-cierre-actions">
+                            <button id="btn-guardar-cierre" onclick="guardarCierreBorrador()" class="btn btn-secondary" disabled>Guardar hallazgos y recomendaciones</button>
+                            <button id="btn-cerrar-exportar" onclick="cerrarAuditoriaYExportarPDF()" class="btn btn-primary" disabled>Cerrar auditoría y exportar PDF</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+    <script src="app.js?v=20260325i"></script>
+</body>
+</html>

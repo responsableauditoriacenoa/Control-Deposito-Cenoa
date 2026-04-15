@@ -1,0 +1,11 @@
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Access-Control-Allow-Origin: *
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+Content-Disposition: attachment; filename="muestra_ventas_internas_TEST-CRED-001_2026-03-24.xlsx"
+Content-Length: 27131
+ETag: W/"69fb-6hnX5P2XwYcjOp58L/edXdvSKys"
+Date: Tue, 24 Mar 2026 02:54:08 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+

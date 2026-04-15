@@ -1,0 +1,262 @@
+FILE: TABLERO DE CONTROL - Control Integral de Deposito - AXJ Enero 2025.xlsx
+SHEETS: Recuperado_Hoja1 (2) | 1,Tranf.Pend. Recep | 2.Pend.Creditoo | 3.Remito Pend Carga | 4.Inv Rota | 7.Remito Pend de Fact | 8.Ventas Internas | 9.Transf.Pend. Entrega | KPI'S | Salta-Jujuy | Config S-J | Rotativo | 4.1 | Hoja1
+
+=== SHEET SUMMARY ===
+- Recuperado_Hoja1 (2): rows=3085, cols=12, non_empty=31059, formulas=0
+- 1,Tranf.Pend. Recep: rows=15, cols=12, non_empty=59, formulas=3
+- 2.Pend.Creditoo: rows=49, cols=17, non_empty=504, formulas=1
+- 3.Remito Pend Carga: rows=12, cols=8, non_empty=37, formulas=7
+- 4.Inv Rota: rows=66, cols=18, non_empty=820, formulas=116
+- 7.Remito Pend de Fact: rows=41, cols=13, non_empty=192, formulas=3
+- 8.Ventas Internas: rows=92, cols=11, non_empty=546, formulas=1
+- 9.Transf.Pend. Entrega: rows=14, cols=12, non_empty=50, formulas=2
+- KPI'S: rows=112, cols=10, non_empty=150, formulas=0
+- Salta-Jujuy: rows=184, cols=11, non_empty=287, formulas=84
+- Config S-J: rows=55, cols=4, non_empty=73, formulas=10
+- Rotativo: rows=114, cols=29, non_empty=2289, formulas=1167
+- 4.1: rows=23, cols=9, non_empty=51, formulas=29
+- Hoja1: rows=40, cols=10, non_empty=340, formulas=0
+
+=== SALTA-JUJUY: key rows 20-184 (A:K non-empty) ===
+B23:Tablero de Resultados - Control Integral de Depósito
+B24:Sucursal: | C24:Casa Central Jujuy | F24:Fecha de realización: | G24:2026-02-03 00:00:00
+B25:Auditor: | C25:Gustavo Zambrano | F25:Codigo Auditoria: | G25:PROG - 858
+B26:Etapas | C26:Parámetros | E26:Ponderación | F26:% Cumplimiento | G26:Resultado final
+B27:Entradas | C27:1. Transf. Pend. de Recepción | E27:0.1 | F27:=+F48 | G27:=+E27*F27
+C28:2. Pendientes de Crédito | E28:0.075 | F28:=+F69 | G28:=+E28*F28
+C29:3. Remito de Compras | E29:0.025 | F29:=+F81 | G29:=+E29*F29
+B30:Stock | C30:4. Rdo. Inv. Rotativo | E30:0.5 | F30:=+F94 | G30:=+E30*F30
+C31:5. Locación | E31:0.1 | F31:=+'4.Inv Rota'!L5 | G31:=+E31*F31
+C32:6. Estado de Art. | E32:0.025 | F32:=+'4.Inv Rota'!K5 | G32:=+E32*F32
+B33:Salidas | C33:7. Remitos Pend. de Facturación | E33:0.025 | F33:=+F135 | G33:=+E33*F33
+C34:8. Ventas Internas Directas | E34:0.05 | F34:=+F148 | G34:=+E34*F34
+C35:9. Transf. Pend. De Entrega | E35:0.1 | F35:=+F154 | G35:=+E35*F35
+E36:=SUM(E27:E35) | G36:=SUM(G27:G35)
+B38:Detalle de Desvíos:
+A39:Entradas
+A40:1. Transf. Pend. de Recepción
+B41:Cantidad total de transferencias, según SIAC: | E41:3
+B42:Transferencias con observaciones: | E42:0
+B44:Fecha | C44:Nro. Cpbte. | D44:Sucursal Origen | E44:Valoriz. Total | F44:Cant. días demora
+B46:Plazo promedio en días de recepción de Transferencias con Desvío | F46:=AVERAGE(F45:F45)
+B47:(*) Se puede agregar más detalle con referencia a la fila. | I47:← Se puede agregar más comentarios aquí
+B48:Grado de cumplimiento para Transf. Pend. De Recepción: | F48:=+'1,Tranf.Pend. Recep'!K15
+A50:2. Pendientes de Crédito
+B51:Cantidad total de Artículos Pendientes de Crédito, según SIAC: | E51:5
+B52:Pendientes de Crédito con observaciones: | E52:5
+B54:Únicamente a modo informativo, y sin impacto en el resultado del control, se detalla a continuación el siguiente crédito pendiente:
+B56:Artículo | C56:Fecha | D56:Comprobante | E56:Cantidad | F56:Observacion
+B57:08021LL02000 | C57:=+VLOOKUP(B57,'2.Pend.Creditoo'!A$17:N$35,6,0) | D57:=+VLOOKUP(B57,'2.Pend.Creditoo'!A$17:N$35,9,0) | E57:=+VLOOKUP(B57,'2.Pend.Creditoo'!A$17:N$35,14,0) | F57:Se detecto que el comprobante observado fue registrado contablemente en el ejercicio 2025, pese a haber sido emitida por el proveedor en febrero de 2024. Los remitos asociados a dicha operación fueron correctamente cargados en el sistema durante el ejercicio 2024, sin generar diferencias de stock, pero no fueron oportunamente vinculados a la factura correspondiente.
+Como consecuencia, la factura quedó registrada en un ejercicio posterior sin cancelación contra remitos, manteniéndose en estado pendiente de crédito para evitar impacto en inventarios.
+B58:088238014000 | C58:=+VLOOKUP(B58,'2.Pend.Creditoo'!A$17:N$35,6,0) | D58:=+VLOOKUP(B58,'2.Pend.Creditoo'!A$17:N$35,9,0) | E58:=+VLOOKUP(B58,'2.Pend.Creditoo'!A$17:N$35,14,0)
+B59:178010L04000 | C59:=+VLOOKUP(B59,'2.Pend.Creditoo'!A$17:N$35,6,0) | D59:=+VLOOKUP(B59,'2.Pend.Creditoo'!A$17:N$35,9,0) | E59:=+VLOOKUP(B59,'2.Pend.Creditoo'!A$17:N$35,14,0)
+B60:PH3B00KA1000 | C60:=+VLOOKUP(B60,'2.Pend.Creditoo'!A$17:N$35,6,0) | D60:=+VLOOKUP(B60,'2.Pend.Creditoo'!A$17:N$35,9,0) | E60:=+VLOOKUP(B60,'2.Pend.Creditoo'!A$17:N$35,14,0)
+B61:PH3B10KA1100 | C61:=+VLOOKUP(B61,'2.Pend.Creditoo'!A$17:N$35,6,0) | D61:=+VLOOKUP(B61,'2.Pend.Creditoo'!A$17:N$35,9,0) | E61:=+VLOOKUP(B61,'2.Pend.Creditoo'!A$17:N$35,14,0)
+B62:PH7000KM10DO | C62:=+VLOOKUP(B62,'2.Pend.Creditoo'!A$17:N$35,6,0) | D62:=+VLOOKUP(B62,'2.Pend.Creditoo'!A$17:N$35,9,0) | E62:=+VLOOKUP(B62,'2.Pend.Creditoo'!A$17:N$35,14,0)
+B64:Fecha | C64:Artículo | D64:N° de Remito | E64:Total | F64:Observaciones
+B65:2024-06-26 00:00:00 | C65:561010K41000 | D65:R-0033-00852594 | E65:152617.67 | F65:Rechazado por envío erroneo de doc.
+B66:2024-06-26 00:00:00 | C66:644610D07000 | D66:R-0033-00852594 | E66:42796.48 | F66:Rechazado por envío erroneo de doc.
+B67:Importe Total de Artículos con Desvío Pend. De Crédito | E67:=SUM(E65:E66)
+B68:(*) Se puede agregar más detalle con referencia a la fila. | I68:← Se puede agregar más comentarios aquí
+B69:Grado de cumplimiento para Artículos Pendiente de Crédito: | F69:=+E51/E52
+A71:3. Remito de Compras
+B72:Cantidad total de Remitos de Compras Pendientes: | E72:2
+B73:Remitos con Demoras: | E73:0
+B75:Fecha Rec. | C75:Nro. Remito | D75:Cant. días demora
+D76:=NETWORKDAYS(B76,$G$24)
+D77:=NETWORKDAYS(B77,$G$24)
+D78:=NETWORKDAYS(B78,$G$24)
+B79:Plazo promedio de demora | D79:=AVERAGE(D76:D78)
+B80:(*) Se puede agregar más detalle con referencia a la fila. | I80:← Se puede agregar más comentarios aquí
+B81:Grado de cumplimiento para Remitos de Compras: | F81:=+'3.Remito Pend Carga'!G5
+A84:Stock
+A85:4. Resultado Inventario Rotativo
+B86:El resultado del inventario rotativo es el siguiente:
+B87:Detalle | D87:Cant. de Art. | E87:$ | F87:%
+B88:Muestra | D88:=+'4.Inv Rota'!E62 | E88:=+'4.Inv Rota'!F62 | F88:=+'4.Inv Rota'!G62
+B89:Faltantes | D89:=+'4.Inv Rota'!E63 | E89:=+'4.Inv Rota'!F63 | F89:=+'4.Inv Rota'!G63
+B90:Sobrantes | D90:=+'4.Inv Rota'!E64 | E90:=+'4.Inv Rota'!F64 | F90:=+'4.Inv Rota'!G64
+B91:Diferencia Neta | D91:=+'4.Inv Rota'!E65 | E91:=+'4.Inv Rota'!F65 | F91:=+'4.Inv Rota'!G65
+B92:Diferencia Absoluta | D92:=+'4.Inv Rota'!E66 | E92:=+'4.Inv Rota'!F66 | F92:=+'4.Inv Rota'!G66
+B94:Del cual, según la siguiente escala, el grado de cumplimiento del billeteo es de: | F94:=VLOOKUP(ABS(F92),D97:E102,2,1)
+D96:Dif. Abs. desde | E96:Grado de cumplim.
+D97:0 | E97:1
+D98:0.001 | E98:0.94
+D99:0.008 | E99:0.82
+D100:0.016 | E100:0.65
+D101:0.024 | E101:0.35
+D102:0.033 | E102:0
+A104:5. Locación
+B105:Muestra: | E105:51
+B106:Artículos mal locados: | E106:3
+B108:Locación | C108:Artículo | D108:Descripción
+B109:=+'4.Inv Rota'!A16 | C109:=+'4.Inv Rota'!D16 | D109:=+'4.Inv Rota'!E16
+B110:=+'4.Inv Rota'!A35 | C110:=+'4.Inv Rota'!D35 | D110:=+'4.Inv Rota'!E35
+B111:=+'4.Inv Rota'!A36 | C111:=+'4.Inv Rota'!D36 | D111:=+'4.Inv Rota'!E36
+B113:Grado de cumplimiento con respecto a la locación de los artículos: | F113:=+'4.Inv Rota'!L5
+A115:6. Estado de Art.
+B116:Muestra | E116:51
+B117:Artículos con Estado observado: | E117:0
+B119:Locación | C119:Artículo | D119:Observación | F119:Cantidad
+B121:Grado de cumplimiento con respecto al Estado de los Artículos: | F121:=+'4.Inv Rota'!K5
+A123:Salidas
+A124:7. Remitos Pend. De Facturación
+B125:Cantidad total de Remitos Pend. de Facturación, según SIAC: | E125:4
+B126:Remitos con observaciones: | E126:2
+B128:Cliente | C128:Fecha | D128:Nro. Cpbte. | E128:$ | F128:Observacion
+B129:LEDESMA S.A.A.I. | C129:=+'7.Remito Pend de Fact'!A11 | D129:=+'7.Remito Pend de Fact'!C11 | E129:=+'7.Remito Pend de Fact'!K11 | F129:Los mencionados remitos, al momento del control, se encontraban pendientes de facturación, sin que exista una justificación al respecto.                                                          Al dia de la fecha, la situacion fue subsanada.
+B130:MINA PIRQUITAS S.A | C130:=+'7.Remito Pend de Fact'!A21 | D130:=+'7.Remito Pend de Fact'!C21 | E130:=+SUM('7.Remito Pend de Fact'!K21:K31)
+B132:Fecha | C132:Nro. de Cbte. | D132:Observación
+F133:(*)
+B134:(*) Se puede agregar más detalle con referencia a la fila. | I134:← Se puede agregar más comentarios aquí
+B135:Grado de cumplimiento para Remitos Pend. de Facturación: | F135:=+'7.Remito Pend de Fact'!M7
+A137:8. Ventas Internas Directas
+B138:Cantidad total de vales por internas directas: | E138:17
+B139:Vales con observaciones: | E139:0
+B141:Fecha | C141:Cpbte. | D141:Nro. Cpbte. | E141:Interna | F141:Observacion
+B142:- | C142:- | D142:- | E142:- | F142:-
+B144:Fecha | C144:Nro. Cpbte. | D144:Interna | E144:Importe
+B145:2024-07-11 00:00:00 | C145:1956-04-07 00:00:00 | D145:Cortesía Ventas - Taller | E145:4150783.21 | F145:(*)
+B146:Importe total de Ventas Internas con Observaciones | E146:=SUM(E145:E145)
+B147:(*) Documento sin firmar. | I147:← Se puede agregar más comentarios aquí
+B148:Grado de cumplimiento con respecto a las Ventas Internas: | F148:=+'8.Ventas Internas'!J6
+A150:9. Transf. Pend. de Entrega
+B151:Cantidad total de transferencias, según SIAC: | E151:1
+B152:Transferencias con observaciones: | E152:0
+B154:Grado de cumplimiento para Transf. Pend. se Entrega: | F154:=+'9.Transf.Pend. Entrega'!K14
+
+=== SALTA-JUJUY: all formulas with cached values ===
+F27==+F48 -> 1
+G27==+E27*F27 -> 0.1
+F28==+F69 -> 1
+G28==+E28*F28 -> 0.075
+F29==+F81 -> 1
+G29==+E29*F29 -> 0.025
+F30==+F94 -> 1
+G30==+E30*F30 -> 0.5
+F31==+'4.Inv Rota'!L5 -> 0.9411764705882353
+G31==+E31*F31 -> 0.09411764705882353
+F32==+'4.Inv Rota'!K5 -> 1
+G32==+E32*F32 -> 0.025
+F33==+F135 -> 0.5
+G33==+E33*F33 -> 0.0125
+F34==+F148 -> 1
+G34==+E34*F34 -> 0.05
+F35==+F154 -> 1
+G35==+E35*F35 -> 0.1
+E36==SUM(E27:E35) -> 1
+G36==SUM(G27:G35) -> 0.9816176470588235
+F46==AVERAGE(F45:F45) -> #DIV/0!
+F48==+'1,Tranf.Pend. Recep'!K15 -> 1
+C57==+VLOOKUP(B57,'2.Pend.Creditoo'!A$17:N$35,6,0) -> 2025-01-31 00:00:00
+D57==+VLOOKUP(B57,'2.Pend.Creditoo'!A$17:N$35,9,0) -> A-0300-00148818
+E57==+VLOOKUP(B57,'2.Pend.Creditoo'!A$17:N$35,14,0) -> 12
+C58==+VLOOKUP(B58,'2.Pend.Creditoo'!A$17:N$35,6,0) -> 2025-01-31 00:00:00
+D58==+VLOOKUP(B58,'2.Pend.Creditoo'!A$17:N$35,9,0) -> A-0300-00148818
+E58==+VLOOKUP(B58,'2.Pend.Creditoo'!A$17:N$35,14,0) -> 10
+C59==+VLOOKUP(B59,'2.Pend.Creditoo'!A$17:N$35,6,0) -> 2025-01-31 00:00:00
+D59==+VLOOKUP(B59,'2.Pend.Creditoo'!A$17:N$35,9,0) -> A-0300-00148818
+E59==+VLOOKUP(B59,'2.Pend.Creditoo'!A$17:N$35,14,0) -> 10
+C60==+VLOOKUP(B60,'2.Pend.Creditoo'!A$17:N$35,6,0) -> 2025-01-31 00:00:00
+D60==+VLOOKUP(B60,'2.Pend.Creditoo'!A$17:N$35,9,0) -> A-0300-00148818
+E60==+VLOOKUP(B60,'2.Pend.Creditoo'!A$17:N$35,14,0) -> 2
+C61==+VLOOKUP(B61,'2.Pend.Creditoo'!A$17:N$35,6,0) -> 2025-01-31 00:00:00
+D61==+VLOOKUP(B61,'2.Pend.Creditoo'!A$17:N$35,9,0) -> A-0300-00148818
+E61==+VLOOKUP(B61,'2.Pend.Creditoo'!A$17:N$35,14,0) -> 1
+C62==+VLOOKUP(B62,'2.Pend.Creditoo'!A$17:N$35,6,0) -> 2025-01-31 00:00:00
+D62==+VLOOKUP(B62,'2.Pend.Creditoo'!A$17:N$35,9,0) -> A-0300-00148818
+E62==+VLOOKUP(B62,'2.Pend.Creditoo'!A$17:N$35,14,0) -> 1
+E67==SUM(E65:E66) -> 195414.15000000002
+F69==+E51/E52 -> 1
+D76==NETWORKDAYS(B76,$G$24) -> 32897
+D77==NETWORKDAYS(B77,$G$24) -> 32897
+D78==NETWORKDAYS(B78,$G$24) -> 32897
+D79==AVERAGE(D76:D78) -> 32897
+F81==+'3.Remito Pend Carga'!G5 -> 1
+D88==+'4.Inv Rota'!E62 -> 213
+E88==+'4.Inv Rota'!F62 -> 24978979.948999997
+F88==+'4.Inv Rota'!G62 -> 1
+D89==+'4.Inv Rota'!E63 -> 0
+E89==+'4.Inv Rota'!F63 -> 0
+F89==+'4.Inv Rota'!G63 -> 0
+D90==+'4.Inv Rota'!E64 -> 0
+E90==+'4.Inv Rota'!F64 -> 0
+F90==+'4.Inv Rota'!G64 -> 0
+D91==+'4.Inv Rota'!E65 -> 0
+E91==+'4.Inv Rota'!F65 -> 0
+F91==+'4.Inv Rota'!G65 -> 0
+D92==+'4.Inv Rota'!E66 -> 0
+E92==+'4.Inv Rota'!F66 -> 0
+F92==+'4.Inv Rota'!G66 -> 0
+F94==VLOOKUP(ABS(F92),D97:E102,2,1) -> 1
+B109==+'4.Inv Rota'!A16 -> D-01-01-E01
+C109==+'4.Inv Rota'!D16 -> 178013116000
+D109==+'4.Inv Rota'!E16 -> ELEMENT SUB-ASSY, AIR CLEANER FILTER
+B110==+'4.Inv Rota'!A35 -> D-03-00-A01
+C110==+'4.Inv Rota'!D35 -> 435120K32000
+D110==+'4.Inv Rota'!E35 -> DISCO FRENO DEL.
+B111==+'4.Inv Rota'!A36 -> D-03-00-A02
+C111==+'4.Inv Rota'!D36 -> 435120K08000
+D111==+'4.Inv Rota'!E36 -> DISCO DE FRENO
+F113==+'4.Inv Rota'!L5 -> 0.9411764705882353
+F121==+'4.Inv Rota'!K5 -> 1
+C129==+'7.Remito Pend de Fact'!A11 -> 2025-11-26 00:00:00
+D129==+'7.Remito Pend de Fact'!C11 -> R-0005-00004364
+E129==+'7.Remito Pend de Fact'!K11 -> 26908.78
+C130==+'7.Remito Pend de Fact'!A21 -> 2026-01-28 00:00:00
+D130==+'7.Remito Pend de Fact'!C21 -> R-0005-00004421
+E130==+SUM('7.Remito Pend de Fact'!K21:K31) -> 9855887.079999998
+F135==+'7.Remito Pend de Fact'!M7 -> 0.5
+E146==SUM(E145:E145) -> 4150783.21
+F148==+'8.Ventas Internas'!J6 -> 1
+F154==+'9.Transf.Pend. Entrega'!K14 -> 1
+
+=== CONFIG S-J: rows 1-55 (A:D) ===
+A1:NO MODIFICAR, TIENE FORMULAS
+A2:CONFIGURACIÓN PARA HOJA DE: "TESORERÍAS Y TARTAGAL"
+A3:CONFIGURACIÓN DEL GRÁFICO:
+A4:** Calificación para los rangos del gráfico:
+A5:35 | B5:SAT | C5:Satisfactorio
+A6:30 | B6:ADE | C6:Adecuado
+A7:17 | B7:SUJ | C7:Sujeto a mejora
+A8:12 | B8:NAD | C8:No adecuado
+A9:6 | B9:INS | C9:Insatisfactorio
+A10==SUM(A5:A9) -> 100 | B10:TOTAL
+A12:** Valor para la aguja del velocimetro:
+A13:Valor | C13==+'Salta-Jujuy'!G36*100 -> 98.16176470588235
+A15:** Parametros para el tamaño de la aguja:
+A16:Antes | C16==C13-C17/2 -> 97.16176470588235
+A17:Puntero | C17:2
+A18:Después | C18==SUM(A5:A10)-C16-C17 -> 100.83823529411765
+A20:CONFIGURACIÓN DEL TEXTO DE LA CALIFICACIÓN:
+A21:** Parametros para la calificación textual:
+A22:Min | B22:Abrev. | C22:Calificación | D22:Definición
+A23:0.94 | B23:SAT | C23:Satisfactorio | D23:No existen desvíos, o si existen estos son escasos y no significativos.
+A24:0.82 | B24:ADE | C24:Adecuado | D24:Los desvíos requieren de seguimiento por parte del sector para evitar su reincidencia.
+A25:0.65 | B25:SUJ | C25:Sujeto a mejora | D25:Suficiente cantidad de desvíos significativos que requieren de acciones correctivas.
+A26:0.35 | B26:NAD | C26:No adecuado | D26:Numerosos e importantes devíos que requieren de acción inmediata.
+A27:0 | B27:INS | C27:Insatisfactorio | D27:Numerosos e importantes devíos que requieren de medidas.
+A29:Detalle de la calificación: | C29==+C13/100 -> 0.9816176470588235
+A31:→ | B31==IF(C29<A26,C27,IF(C29<A25,C26,IF(C29<A24,C25,IF(C29<A23,C24,C23)))) -> Satisfactorio
+A32:→ | B32==VLOOKUP(B31,C23:D27,2,FALSE) -> No existen desvíos, o si existen estos son escasos y no significativos.
+A34:CONFIGURACIÓN PARA LAS TARJETAS QUE CONTIENEN TEXTO:
+A35:** Tarjeta 1: Lugar | D35==+'Salta-Jujuy'!C24 -> Casa Central Jujuy
+A36:→ Lista desplegable para las sucursales: | D36:Casa Central Jujuy
+D37:Sucursal Salta
+A39:** Tarjeta 2: Muestra de Art. | D39==+'Salta-Jujuy'!D88 -> 213
+A42:** Tarjeta 3: Fecha de realización arqueo | D42==+'Salta-Jujuy'!G24 -> 2026-02-03 00:00:00
+
+=== CROSS-SHEET REFERENCES from Salta-Jujuy ===
+- +'4.Inv Rota: 28
+- +'1,Tranf.Pend. Recep: 1
+- +VLOOKUP(B57,'2.Pend.Creditoo: 3
+- +VLOOKUP(B58,'2.Pend.Creditoo: 3
+- +VLOOKUP(B59,'2.Pend.Creditoo: 3
+- +VLOOKUP(B60,'2.Pend.Creditoo: 3
+- +VLOOKUP(B61,'2.Pend.Creditoo: 3
+- +VLOOKUP(B62,'2.Pend.Creditoo: 3
+- +'3.Remito Pend Carga: 1
+- +'7.Remito Pend de Fact: 6
+- +SUM('7.Remito Pend de Fact: 1
+- +'8.Ventas Internas: 1
+- +'9.Transf.Pend. Entrega: 1

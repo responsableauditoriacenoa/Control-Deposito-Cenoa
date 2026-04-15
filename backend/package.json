@@ -1,0 +1,23 @@
+{
+  "name": "control-depositos-backend",
+  "version": "1.0.0",
+  "description": "Backend para auditoría de control integral de depósitos",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["audit", "sqlite", "express"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "multer": "^1.4.5-lts.2",
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "uuid": "^9.0.0",
+    "xlsx": "^0.18.5"
+  }
+}
