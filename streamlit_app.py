@@ -50,7 +50,18 @@ def inject_styles() -> None:
             background: linear-gradient(170deg, #0c1739 0%, #111f4d 55%, #13275f 100%);
             border-right: 1px solid rgba(129, 140, 248, 0.25);
         }
+        [data-testid="stSidebar"] > div:first-child {
+            padding-top: 1.2rem;
+        }
         [data-testid="stSidebar"] * { color: #eef4ff; }
+        [data-testid="stSidebar"] h2 {
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: -.02em;
+        }
+        [data-testid="stSidebar"] .stCaption {
+            color: #c7d3f8 !important;
+        }
         [data-testid="stSidebar"] .stRadio > label,
         [data-testid="stSidebar"] .stSelectbox > label {
             color: #c7d3f8 !important;
@@ -62,14 +73,25 @@ def inject_styles() -> None:
         [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {
             border: 1px solid rgba(255,255,255,0.18);
             background: rgba(255,255,255,0.05);
-            padding: 8px 10px;
-            border-radius: 10px;
-            margin-bottom: 8px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            transition: all .18s ease;
+        }
+        [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label:hover {
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(199,210,254,.75);
+        }
+        [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label[data-checked="true"] {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            border-color: #a5b4fc;
+            box-shadow: 0 6px 16px rgba(79,70,229,.28);
         }
         [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] > div {
             background: rgba(255,255,255,0.08);
             border: 1px solid rgba(199, 210, 254, 0.35);
-            border-radius: 10px;
+            border-radius: 12px;
+            min-height: 46px;
         }
         .hero-card, .metric-card, .table-card, .surface-card {
             background: white;
@@ -237,6 +259,47 @@ def parse_json_list(value: str | None) -> list[dict]:
         return []
 
 
+def pretty_status(value: str | None) -> str:
+    raw = str(value or "").strip()
+    if raw == "en_progreso":
+        return "En progreso"
+    if raw == "completada":
+        return "Completada"
+    return raw or "-"
+
+
+def pretty_text(value: object, default: str = "-") -> str:
+    if value is None:
+        return default
+    text = str(value).strip()
+    if not text or text.lower() in {"none", "nan", "nat"}:
+        return default
+    return text
+
+
+def pretty_date(value: object) -> str:
+    text = pretty_text(value, default="")
+    if not text:
+        return "-"
+    try:
+        parsed = pd.to_datetime(text, errors="coerce")
+    except Exception:
+        return text
+    if pd.isna(parsed):
+        return text
+    return parsed.strftime("%d/%m/%Y")
+
+
+def pretty_score(value: object) -> str:
+    try:
+        numeric = float(value)
+    except Exception:
+        return "-"
+    if pd.isna(numeric):
+        return "-"
+    return fmt_percent(numeric)
+
+
 def metric_card(label: str, value: str, sub: str = "", primary: bool = False) -> None:
     st.markdown(
         f"""
@@ -265,16 +328,18 @@ def traffic_card(title: str, value: str, status: str) -> None:
 
 
 def mini_kpi_row(items: list[tuple[str, str]]) -> None:
-    cards = "".join(
-        f"""
-        <div class="mini-kpi">
-            <div class="mini-kpi-label">{label}</div>
-            <div class="mini-kpi-value">{value}</div>
-        </div>
-        """
-        for label, value in items
-    )
-    st.markdown(f'<div class="mini-kpi-grid">{cards}</div>', unsafe_allow_html=True)
+    cols = st.columns(len(items))
+    for col, (label, value) in zip(cols, items):
+        with col:
+            st.markdown(
+                (
+                    '<div class="mini-kpi">'
+                    f'<div class="mini-kpi-label">{label}</div>'
+                    f'<div class="mini-kpi-value">{value}</div>'
+                    '</div>'
+                ),
+                unsafe_allow_html=True,
+            )
 
 
 def compute_dashboard_metrics(audits: list[dict]) -> dict[str, str]:
@@ -534,7 +599,13 @@ def render_dashboard(audits: list[dict]) -> None:
         st.markdown('<div class="subsection-title">Base de Auditorias</div>', unsafe_allow_html=True)
         df = pd.DataFrame(audits)
         visible = df[["codigo", "empresa", "sucursal", "auditor_nombre", "estado", "score_final", "calificacion"]].copy()
-        visible["score_final"] = visible["score_final"].map(fmt_percent)
+        visible["codigo"] = visible["codigo"].map(pretty_text)
+        visible["empresa"] = visible["empresa"].map(pretty_text)
+        visible["sucursal"] = visible["sucursal"].map(pretty_text)
+        visible["auditor_nombre"] = visible["auditor_nombre"].map(pretty_text)
+        visible["estado"] = visible["estado"].map(pretty_status)
+        visible["score_final"] = visible["score_final"].map(pretty_score)
+        visible["calificacion"] = visible["calificacion"].map(pretty_text)
         st.dataframe(visible, use_container_width=True, hide_index=True)
 
 
@@ -631,7 +702,14 @@ def render_auditorias(audits: list[dict]) -> None:
         ("Score promedio", fmt_percent(pd.to_numeric(df["score_final"], errors="coerce").fillna(0).mean())),
     ])
     visible = df[["codigo", "empresa", "sucursal", "auditor_nombre", "estado", "score_final", "calificacion", "fecha_realizacion"]].copy()
-    visible["score_final"] = visible["score_final"].map(fmt_percent)
+    visible["codigo"] = visible["codigo"].map(pretty_text)
+    visible["empresa"] = visible["empresa"].map(pretty_text)
+    visible["sucursal"] = visible["sucursal"].map(pretty_text)
+    visible["auditor_nombre"] = visible["auditor_nombre"].map(pretty_text)
+    visible["estado"] = visible["estado"].map(pretty_status)
+    visible["score_final"] = visible["score_final"].map(pretty_score)
+    visible["calificacion"] = visible["calificacion"].map(pretty_text)
+    visible["fecha_realizacion"] = visible["fecha_realizacion"].map(pretty_date)
     st.markdown('<div class="table-shell">', unsafe_allow_html=True)
     st.dataframe(
         visible,
@@ -666,7 +744,13 @@ def render_informes() -> None:
         ("Recomendaciones", str(sum(len(parse_json_list(item)) for item in df["recomendaciones"].fillna("")))),
     ])
     visible = df[["codigo", "empresa", "sucursal", "auditor_nombre", "fecha_cierre", "score_final", "calificacion"]].copy()
-    visible["score_final"] = visible["score_final"].map(fmt_percent)
+    visible["codigo"] = visible["codigo"].map(pretty_text)
+    visible["empresa"] = visible["empresa"].map(pretty_text)
+    visible["sucursal"] = visible["sucursal"].map(pretty_text)
+    visible["auditor_nombre"] = visible["auditor_nombre"].map(pretty_text)
+    visible["fecha_cierre"] = visible["fecha_cierre"].map(pretty_date)
+    visible["score_final"] = visible["score_final"].map(pretty_score)
+    visible["calificacion"] = visible["calificacion"].map(pretty_text)
     st.markdown('<div class="table-shell">', unsafe_allow_html=True)
     st.dataframe(
         visible,
@@ -1009,9 +1093,11 @@ def render_operacion(audits: list[dict]) -> None:
     controles_df = pd.DataFrame(audit["controles"])[
         ["modulo_numero", "modulo_nombre", "etapa", "ponderacion", "score_cumplimiento", "resultado_final", "total_items", "items_observacion"]
     ].copy()
-    controles_df["ponderacion"] = controles_df["ponderacion"].map(fmt_percent)
-    controles_df["score_cumplimiento"] = controles_df["score_cumplimiento"].map(fmt_percent)
-    controles_df["resultado_final"] = controles_df["resultado_final"].map(fmt_percent)
+    controles_df["modulo_nombre"] = controles_df["modulo_nombre"].map(pretty_text)
+    controles_df["etapa"] = controles_df["etapa"].map(pretty_text)
+    controles_df["ponderacion"] = controles_df["ponderacion"].map(pretty_score)
+    controles_df["score_cumplimiento"] = controles_df["score_cumplimiento"].map(pretty_score)
+    controles_df["resultado_final"] = controles_df["resultado_final"].map(pretty_score)
     st.markdown('<div class="subsection-title">Tablero de Resultados</div>', unsafe_allow_html=True)
     st.markdown('<div class="table-shell">', unsafe_allow_html=True)
     st.dataframe(
