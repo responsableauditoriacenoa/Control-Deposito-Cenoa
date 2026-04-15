@@ -385,6 +385,89 @@ def get_config() -> dict[str, Any]:
     }
 
 
+def save_config(
+    empresas: list[str],
+    empresa_default: str,
+    sucursales_por_empresa: dict[str, list[str]],
+    ponderaciones: dict[str, float],
+) -> None:
+    empresas = [str(item).strip() for item in empresas if str(item).strip()]
+    if not empresas:
+        raise ValueError("Debe existir al menos una empresa.")
+
+    normalized_sucursales = {}
+    for empresa in empresas:
+        values = sucursales_por_empresa.get(empresa, [])
+        normalized_sucursales[empresa] = sorted({str(item).strip() for item in values if str(item).strip()})
+
+    if not any(normalized_sucursales.values()):
+        raise ValueError("Debe existir al menos una sucursal configurada.")
+
+    if empresa_default not in empresas:
+        empresa_default = empresas[0]
+
+    raw_weights = []
+    for modulo in MODULOS_ACTIVOS:
+        value = float(ponderaciones.get(str(modulo), 0) or 0)
+        raw_weights.append(max(value, 0))
+    total_weight = sum(raw_weights)
+    if total_weight <= 0:
+        normalized_weights = {str(modulo): PONDERACION_EQUIVALENTE for modulo in MODULOS_ACTIVOS}
+    else:
+        normalized_weights = {
+            str(modulo): raw_weights[index] / total_weight
+            for index, modulo in enumerate(MODULOS_ACTIVOS)
+        }
+
+    config_values = {
+        "empresas": empresas,
+        "empresa_default": empresa_default,
+        "sucursales_por_empresa": normalized_sucursales,
+        "ponderaciones": normalized_weights,
+    }
+
+    with get_connection() as conn:
+        for key, value in config_values.items():
+            conn.execute(
+                """
+                UPDATE configuracion
+                SET valor = ?, fecha_actualizacion = CURRENT_TIMESTAMP
+                WHERE nombre_config = ?
+                """,
+                (to_json(value), key),
+            )
+
+        for modulo in MODULOS_ACTIVOS:
+            ponderacion = float(normalized_weights[str(modulo)])
+            conn.execute(
+                """
+                UPDATE controles
+                SET ponderacion = ?, resultado_final = COALESCE(score_cumplimiento, 0) * ?
+                WHERE modulo_numero = ?
+                """,
+                (ponderacion, ponderacion, modulo),
+            )
+        conn.commit()
+
+    audits = list_audits()
+    for audit in audits:
+        recalculate_audit(audit["id"])
+
+
+def list_reports() -> list[dict[str, Any]]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT a.*, u.nombre AS auditor_nombre
+            FROM auditorias a
+            LEFT JOIN auditores u ON u.id = a.auditor_id
+            WHERE a.activa = 1 AND a.estado = 'completada'
+            ORDER BY COALESCE(a.fecha_cierre, a.fecha_actualizacion, a.fecha_realizacion) DESC
+            """
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def list_audits() -> list[dict[str, Any]]:
     with get_connection() as conn:
         rows = conn.execute(
