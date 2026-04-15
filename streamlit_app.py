@@ -38,30 +38,120 @@ def inject_styles() -> None:
     st.markdown(
         """
         <style>
-        .stApp { background: linear-gradient(180deg,#eef3fb 0%,#f7f9fc 100%); }
-        [data-testid="stSidebar"] { background: linear-gradient(180deg,#0c1739 0%,#13275f 100%); }
+        .stApp {
+            background:
+                radial-gradient(1200px 600px at -10% -10%, rgba(99, 102, 241, 0.12) 0%, rgba(99, 102, 241, 0) 55%),
+                radial-gradient(1000px 500px at 110% -10%, rgba(56, 189, 248, 0.1) 0%, rgba(56, 189, 248, 0) 55%),
+                #f3f6fb;
+        }
+        [data-testid="stHeader"] { background: transparent; }
+        [data-testid="stToolbar"] { right: 1rem; }
+        [data-testid="stSidebar"] {
+            background: linear-gradient(170deg, #0c1739 0%, #111f4d 55%, #13275f 100%);
+            border-right: 1px solid rgba(129, 140, 248, 0.25);
+        }
         [data-testid="stSidebar"] * { color: #eef4ff; }
-        .hero-card, .metric-card, .table-card {
-            background: white; border: 1px solid #dbe4f2; border-radius: 18px; padding: 18px 20px;
+        [data-testid="stSidebar"] .stRadio > label,
+        [data-testid="stSidebar"] .stSelectbox > label {
+            color: #c7d3f8 !important;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            font-weight: 700;
+        }
+        [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label {
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.05);
+            padding: 8px 10px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+        }
+        [data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] > div {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(199, 210, 254, 0.35);
+            border-radius: 10px;
+        }
+        .hero-card, .metric-card, .table-card, .surface-card {
+            background: white;
+            border: 1px solid #dbe4f2;
+            border-radius: 18px;
+            padding: 18px 20px;
             box-shadow: 0 10px 24px rgba(15,23,42,.06);
         }
-        .hero-card { background: linear-gradient(135deg,#182968 0%,#3048a4 100%); color: white; border: none; }
+        .hero-card { background: linear-gradient(135deg,#1f2a6b 0%,#3f4cc9 52%,#6366f1 100%); color: white; border: none; }
         .hero-card h1, .hero-card p { color: white; margin: 0; }
-        .metric-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: .08em; }
-        .metric-value { font-size: 32px; font-weight: 800; color: #0f172a; margin-top: 8px; }
-        .metric-sub { font-size: 13px; color: #64748b; margin-top: 6px; }
+        .metric-card.metric-primary {
+            background: linear-gradient(145deg, #3f45b3 0%, #5548d8 52%, #6d5ef0 100%);
+            border: 1px solid rgba(199, 210, 254, 0.65);
+        }
+        .metric-card.metric-primary .metric-label,
+        .metric-card.metric-primary .metric-value,
+        .metric-card.metric-primary .metric-sub {
+            color: #eef2ff;
+        }
+        .metric-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+        .metric-value { font-size: 32px; font-weight: 800; color: #0f172a; margin-top: 8px; letter-spacing: -0.3px; }
+        .metric-sub { font-size: 12px; color: #64748b; margin-top: 6px; min-height: 16px; }
         .section-title { font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
         .section-copy { color: #475569; margin-bottom: 14px; }
         .audit-chip {
             display:inline-block; padding:8px 12px; border-radius:999px; background:#e8eefb; color:#29417f;
             font-weight:600; font-size:13px; margin-right:10px; margin-bottom:8px;
         }
+        .traffic-card {
+            border: 1px solid #dbe4f2;
+            border-radius: 12px;
+            padding: 12px 14px;
+            background: #fff;
+            box-shadow: 0 4px 14px rgba(15,23,42,.04);
+        }
+        .traffic-title { font-size: 13px; color: #475569; font-weight: 700; }
+        .traffic-value { margin-top: 6px; font-size: 24px; font-weight: 800; color: #0f172a; }
         .status-ok, .status-warn, .status-bad {
             display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700;
         }
         .status-ok { background:#dcfce7; color:#166534; }
         .status-warn { background:#fef3c7; color:#92400e; }
         .status-bad { background:#fee2e2; color:#991b1b; }
+        .subsection-title {
+            font-size: 18px; font-weight: 800; color: #0f172a; margin: 20px 0 10px 0;
+            padding-bottom: 8px; border-bottom: 2px solid #d7e2fa;
+        }
+        .stExpander {
+            border: 1px solid #dbe4f2 !important;
+            border-radius: 14px !important;
+            background: rgba(255,255,255,0.92) !important;
+            box-shadow: 0 6px 18px rgba(15,23,42,.05);
+        }
+        .stExpander summary {
+            font-weight: 800 !important;
+            color: #0f172a !important;
+        }
+        .stDataFrame, div[data-testid="stDataFrame"] {
+            border-radius: 14px !important;
+            overflow: hidden;
+            border: 1px solid #dbe4f2;
+            background: white;
+        }
+        .stButton > button, .stDownloadButton > button {
+            border-radius: 11px !important;
+            font-weight: 700 !important;
+            border: 1px solid transparent !important;
+        }
+        .stButton > button[kind="primary"], .stDownloadButton > button {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
+            color: white !important;
+            box-shadow: 0 8px 20px rgba(79,70,229,.22);
+        }
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 10px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            background: rgba(255,255,255,.65);
+            border: 1px solid #dbe4f2;
+            border-radius: 10px;
+            padding: 8px 14px;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -90,13 +180,27 @@ def parse_json_list(value: str | None) -> list[dict]:
         return []
 
 
-def metric_card(label: str, value: str, sub: str = "") -> None:
+def metric_card(label: str, value: str, sub: str = "", primary: bool = False) -> None:
     st.markdown(
         f"""
-        <div class="metric-card">
+        <div class="metric-card {'metric-primary' if primary else ''}">
             <div class="metric-label">{label}</div>
             <div class="metric-value">{value}</div>
             <div class="metric-sub">{sub}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def traffic_card(title: str, value: str, status: str) -> None:
+    cls = "status-ok" if status == "Verde" else "status-warn" if status == "Amarillo" else "status-bad"
+    st.markdown(
+        f"""
+        <div class="traffic-card">
+            <div class="traffic-title">{title}</div>
+            <div class="traffic-value">{value}</div>
+            <span class="{cls}">{status}</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -289,6 +393,15 @@ def render_sidebar(audits: list[dict]) -> None:
             st.session_state["selected_audit_id"] = options[selected_label]
         else:
             st.info("Sin auditorias activas.")
+        st.markdown(
+            f"""
+            <div class="surface-card" style="background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.14); padding:12px 14px;">
+                <div style="font-size:12px; color:#c7d3f8; text-transform:uppercase; letter-spacing:.08em; font-weight:700;">Sesion</div>
+                <div style="font-size:14px; color:#fff; font-weight:700; margin-top:6px;">{st.session_state['auditor_nombre']}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         st.caption(f"Base activa: {DB_DISPLAY}")
 
 
@@ -310,13 +423,13 @@ def render_dashboard(audits: list[dict]) -> None:
     metrics = compute_dashboard_metrics(audits)
     cols = st.columns(4)
     with cols[0]:
-        metric_card("Auditorias Totales", metrics["total"], "Base historica del tablero")
+        metric_card("Auditorias Totales", metrics["total"], "Base historica del tablero", primary=True)
     with cols[1]:
-        metric_card("Ultimos 30 dias", metrics["ultimos30"], "Ritmo reciente de gestion")
+        metric_card("Ultimos 30 dias", metrics["ultimos30"], "Ritmo reciente de gestion", primary=True)
     with cols[2]:
-        metric_card("% Cierre", metrics["cierre"], "Completadas sobre total")
+        metric_card("% Cierre", metrics["cierre"], "Completadas sobre total", primary=True)
     with cols[3]:
-        metric_card("Score Promedio", metrics["promedio"], "Rendimiento global ponderado")
+        metric_card("Score Promedio", metrics["promedio"], "Rendimiento global ponderado", primary=True)
     cols = st.columns(4)
     with cols[0]:
         metric_card("Mediana Score", metrics["mediana"], "Comportamiento central")
@@ -336,14 +449,19 @@ def render_dashboard(audits: list[dict]) -> None:
     with cols[3]:
         metric_card("Concentracion Empresa", metrics["concentracion"], metrics["top_empresa"])
 
-    st.markdown("#### Semaforo ejecutivo")
+    st.markdown('<div class="subsection-title">Semaforo Ejecutivo</div>', unsafe_allow_html=True)
     sem_cols = st.columns(4)
-    sem_cols[0].markdown(f"**Cierre operativo:** `{metrics['semaforo_cierre']}`")
-    sem_cols[1].markdown(f"**Rendimiento global:** `{metrics['semaforo_score']}`")
-    sem_cols[2].markdown(f"**Exposicion a riesgo:** `{metrics['semaforo_riesgo']}`")
-    sem_cols[3].markdown(f"**Cobertura corporativa:** `{metrics['semaforo_cobertura']}`")
+    with sem_cols[0]:
+        traffic_card("Cierre Operativo", metrics["cierre"], metrics["semaforo_cierre"])
+    with sem_cols[1]:
+        traffic_card("Rendimiento Global", metrics["promedio"], metrics["semaforo_score"])
+    with sem_cols[2]:
+        traffic_card("Exposicion a Riesgo", metrics["riesgo"], metrics["semaforo_riesgo"])
+    with sem_cols[3]:
+        traffic_card("Cobertura Corporativa", metrics["empresas"], metrics["semaforo_cobertura"])
 
     if audits:
+        st.markdown('<div class="subsection-title">Base de Auditorias</div>', unsafe_allow_html=True)
         df = pd.DataFrame(audits)
         visible = df[["codigo", "empresa", "sucursal", "auditor_nombre", "estado", "score_final", "calificacion"]].copy()
         visible["score_final"] = visible["score_final"].map(fmt_percent)
@@ -352,6 +470,7 @@ def render_dashboard(audits: list[dict]) -> None:
 
 def render_new_audit() -> None:
     st.markdown('<div class="section-title">Crear Nueva Auditoria</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-copy">Carga inicial de la auditoria con empresa, sucursal y fecha de realizacion.</div>', unsafe_allow_html=True)
     config = get_config()
     empresas = config["empresas"]
     selected_empresa = st.selectbox(
@@ -383,6 +502,7 @@ def render_new_audit() -> None:
 
 def render_configuracion() -> None:
     st.markdown('<div class="section-title">Configuracion</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-copy">Gestiona ponderaciones, empresa por defecto y sucursales en una vista centralizada.</div>', unsafe_allow_html=True)
     config = get_config()
     empresas_text = st.text_area("Empresas", value="\n".join(config["empresas"]), height=120)
     empresas = [item.strip() for item in empresas_text.splitlines() if item.strip()]
@@ -392,7 +512,7 @@ def render_configuracion() -> None:
         index=0 if not empresas else max(0, empresas.index(config["empresa_default"]) if config["empresa_default"] in empresas else 0),
     )
 
-    st.markdown("#### Sucursales por empresa")
+    st.markdown('<div class="subsection-title">Sucursales por Empresa</div>', unsafe_allow_html=True)
     sucursales_por_empresa: dict[str, list[str]] = {}
     for empresa in empresas or config["empresas"]:
         current = config["sucursales_por_empresa"].get(empresa, [])
@@ -404,7 +524,7 @@ def render_configuracion() -> None:
         )
         sucursales_por_empresa[empresa] = [item.strip() for item in text_value.splitlines() if item.strip()]
 
-    st.markdown("#### Ponderaciones")
+    st.markdown('<div class="subsection-title">Ponderaciones</div>', unsafe_allow_html=True)
     ponderaciones: dict[str, float] = {}
     cols = st.columns(len(MODULOS_ACTIVOS))
     for index, modulo in enumerate(MODULOS_ACTIVOS):
@@ -429,6 +549,7 @@ def render_configuracion() -> None:
 
 def render_auditorias(audits: list[dict]) -> None:
     st.markdown('<div class="section-title">Auditorias</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-copy">Listado operativo de auditorias creadas y su estado actual.</div>', unsafe_allow_html=True)
     if not audits:
         st.info("Todavia no hay auditorias.")
         return
@@ -440,6 +561,7 @@ def render_auditorias(audits: list[dict]) -> None:
 
 def render_informes() -> None:
     st.markdown('<div class="section-title">Informes</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-copy">Consulta de auditorias cerradas y descarga de reportes.</div>', unsafe_allow_html=True)
     reports = list_reports()
     if not reports:
         st.info("No hay auditorias cerradas todavia.")
@@ -474,7 +596,7 @@ def render_informes() -> None:
 
 
 def render_manual_modules(audit: dict) -> None:
-    st.markdown("### Indicadores manuales")
+    st.markdown('<div class="subsection-title">Indicadores Manuales</div>', unsafe_allow_html=True)
     for control in audit["controles"]:
         if control["modulo_numero"] not in (3, 4, 7):
             continue
@@ -645,7 +767,7 @@ def render_ventas_section(audit: dict) -> None:
 
 
 def render_close_section(audit: dict) -> None:
-    st.markdown("### Cierre de auditoria")
+    st.markdown('<div class="subsection-title">Resumen y Cierre</div>', unsafe_allow_html=True)
     controles = [item for item in audit["controles"] if item["modulo_numero"] in MODULOS_ACTIVOS]
     faltantes = [item["modulo_nombre"] for item in controles if pd.isna(item.get("score_cumplimiento"))]
     hallazgos_prev = parse_json_list(audit.get("hallazgos"))
@@ -709,6 +831,7 @@ def render_close_section(audit: dict) -> None:
 
 def render_operacion(audits: list[dict]) -> None:
     st.markdown('<div class="section-title">Operacion</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-copy">Carga de indicadores, seguimiento y cierre de la auditoria activa.</div>', unsafe_allow_html=True)
     audit_id = st.session_state.get("selected_audit_id")
     if not audit_id and audits:
         audit_id = audits[0]["id"]
