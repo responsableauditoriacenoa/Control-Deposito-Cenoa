@@ -605,6 +605,23 @@ def update_manual_control(control_id: str, score_percent: float) -> None:
     recalculate_audit(control["auditoria_id"])
 
 
+def save_close_draft(auditoria_id: str, hallazgos: str, recomendaciones: str) -> None:
+    hallazgos_data = parse_json(hallazgos or "[]", [])
+    recomendaciones_data = parse_json(recomendaciones or "[]", [])
+    if not isinstance(hallazgos_data, list) or not isinstance(recomendaciones_data, list):
+        raise ValueError("El formato de hallazgos o recomendaciones no es valido.")
+    with get_connection() as conn:
+        conn.execute(
+            """
+            UPDATE auditorias
+            SET hallazgos = ?, recomendaciones = ?, fecha_actualizacion = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (hallazgos.strip(), recomendaciones.strip(), auditoria_id),
+        )
+        conn.commit()
+
+
 def close_audit(auditoria_id: str, hallazgos: str, recomendaciones: str) -> None:
     hallazgos = hallazgos.strip()
     recomendaciones = recomendaciones.strip()

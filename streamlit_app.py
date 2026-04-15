@@ -23,6 +23,7 @@ from streamlit_backend import (
     init_db,
     list_audits,
     list_reports,
+    save_close_draft,
     save_config,
     save_creditos_edits,
     save_transferencias_edits,
@@ -567,6 +568,16 @@ def parse_json_list(value: str | None) -> list[dict]:
         return parsed if isinstance(parsed, list) else []
     except Exception:
         return []
+
+
+def next_item_id(prefix: str, items: list[dict]) -> str:
+    max_num = 0
+    for item in items:
+        import re
+        match = re.search(r"\d+", str(item.get("id", "")))
+        if match:
+            max_num = max(max_num, int(match.group(0)))
+    return f"{prefix}{max_num + 1}"
 
 
 def pretty_status(value: str | None) -> str:
@@ -1396,10 +1407,26 @@ def render_ventas_section(audit: dict) -> None:
 def render_close_section(audit: dict) -> None:
     controles = [item for item in audit["controles"] if item["modulo_numero"] in MODULOS_ACTIVOS]
     faltantes = [item["modulo_nombre"] for item in controles if pd.isna(item.get("score_cumplimiento"))]
-    hallazgos_prev = parse_json_list(audit.get("hallazgos"))
-    recomendaciones_prev = parse_json_list(audit.get("recomendaciones"))
-    hallazgo_default = hallazgos_prev[0] if hallazgos_prev else {"id": "H1", "indicador": str(controles[0]["modulo_numero"]) if controles else "", "gravedad": "media", "descripcion": ""}
-    recomendacion_default = recomendaciones_prev[0] if recomendaciones_prev else {"id": "R1", "hallazgoId": hallazgo_default["id"], "descripcion": ""}
+    read_only = audit.get("estado") == "completada"
+    hallazgo_state_key = f"close_hallazgos_{audit['id']}"
+    recomendacion_state_key = f"close_recomendaciones_{audit['id']}"
+    if hallazgo_state_key not in st.session_state:
+        hallazgos_prev = parse_json_list(audit.get("hallazgos"))
+        st.session_state[hallazgo_state_key] = hallazgos_prev or [{
+            "id": "H1",
+            "indicador": str(controles[0]["modulo_numero"]) if controles else "",
+            "gravedad": "media",
+            "descripcion": "",
+        }]
+    if recomendacion_state_key not in st.session_state:
+        recomendaciones_prev = parse_json_list(audit.get("recomendaciones"))
+        st.session_state[recomendacion_state_key] = recomendaciones_prev or [{
+            "id": "R1",
+            "hallazgoId": st.session_state[hallazgo_state_key][0]["id"] if st.session_state[hallazgo_state_key] else "H1",
+            "descripcion": "",
+        }]
+    hallazgos_state = st.session_state[hallazgo_state_key]
+    recomendaciones_state = st.session_state[recomendacion_state_key]
     rows = []
     for control in controles:
         rows.append(
@@ -1440,38 +1467,106 @@ def render_close_section(audit: dict) -> None:
     left, right = st.columns(2)
     with left:
         st.markdown('<div class="resumen-cierre-panel"><h4>Hallazgos</h4></div>', unsafe_allow_html=True)
-        h1, h2 = st.columns(2)
-        hallazgo_id = h1.text_input("ID hallazgo", value=str(hallazgo_default.get("id", "H1")))
-        indicador = h2.selectbox(
-            "Indicador de referencia",
-            [str(item["modulo_numero"]) for item in controles],
-            index=max(0, [str(item["modulo_numero"]) for item in controles].index(str(hallazgo_default.get("indicador"))) if controles and str(hallazgo_default.get("indicador")) in [str(item["modulo_numero"]) for item in controles] else 0),
-        ) if controles else ""
-        gravedad = st.selectbox("Gravedad", ["alta", "media", "baja"], index=["alta", "media", "baja"].index(str(hallazgo_default.get("gravedad", "media")).lower()) if str(hallazgo_default.get("gravedad", "media")).lower() in ["alta", "media", "baja"] else 1)
-        hallazgo_desc = st.text_area("Descripcion del hallazgo", value=str(hallazgo_default.get("descripcion", "")), height=140)
+        if not read_only and st.button("Agregar nuevo hallazgo", key=f"add_hallazgo_{audit['id']}"):
+            hallazgos_state.append({
+                "id": next_item_id("H", hallazgos_state),
+                "indicador": str(controles[0]["modulo_numero"]) if controles else "",
+                "gravedad": "media",
+                "descripcion": "",
+            })
+            st.rerun()
+        for index, hallazgo in enumerate(hallazgos_state):
+            st.markdown(f"**Hallazgo {index + 1}**")
+            h1, h2 = st.columns(2)
+            hallazgo["id"] = h1.text_input("ID hallazgo", value=str(hallazgo.get("id", f"H{index+1}")), key=f"hallazgo_id_{audit['id']}_{index}", disabled=read_only)
+            indicador_options = [str(item["modulo_numero"]) for item in controles]
+            hallazgo["indicador"] = h2.selectbox(
+                "Indicador de referencia",
+                indicador_options,
+                index=max(0, indicador_options.index(str(hallazgo.get("indicador"))) if indicador_options and str(hallazgo.get("indicador")) in indicador_options else 0),
+                key=f"hallazgo_indicador_{audit['id']}_{index}",
+                disabled=read_only,
+            ) if controles else ""
+            hallazgo["gravedad"] = st.selectbox(
+                "Gravedad",
+                ["alta", "media", "baja"],
+                index=["alta", "media", "baja"].index(str(hallazgo.get("gravedad", "media")).lower()) if str(hallazgo.get("gravedad", "media")).lower() in ["alta", "media", "baja"] else 1,
+                key=f"hallazgo_gravedad_{audit['id']}_{index}",
+                disabled=read_only,
+            )
+            hallazgo["descripcion"] = st.text_area(
+                "Descripcion del hallazgo",
+                value=str(hallazgo.get("descripcion", "")),
+                height=120,
+                key=f"hallazgo_desc_{audit['id']}_{index}",
+                disabled=read_only,
+            ).strip()
+            if not read_only and len(hallazgos_state) > 1 and st.button("Eliminar hallazgo", key=f"del_hallazgo_{audit['id']}_{index}"):
+                removed = hallazgos_state.pop(index)
+                recomendaciones_state[:] = [r for r in recomendaciones_state if str(r.get("hallazgoId")) != str(removed.get("id"))]
+                st.rerun()
     with right:
         st.markdown('<div class="resumen-cierre-panel"><h4>Recomendaciones</h4></div>', unsafe_allow_html=True)
-        r1, r2 = st.columns(2)
-        recomendacion_id = r1.text_input("ID recomendacion", value=str(recomendacion_default.get("id", "R1")))
-        hallazgo_ref = r2.text_input("Hallazgo de referencia", value=str(recomendacion_default.get("hallazgoId", hallazgo_id or "H1")))
-        recomendacion_desc = st.text_area("Descripcion de la recomendacion", value=str(recomendacion_default.get("descripcion", "")), height=140)
+        if not read_only and st.button("Agregar recomendacion", key=f"add_recomendacion_{audit['id']}"):
+            if not hallazgos_state:
+                st.warning("Primero agrega un hallazgo para poder asociar una recomendacion.")
+            else:
+                recomendaciones_state.append({
+                    "id": next_item_id("R", recomendaciones_state),
+                    "hallazgoId": str(hallazgos_state[0].get("id", "H1")),
+                    "descripcion": "",
+                })
+                st.rerun()
+        hallazgo_ids = [str(item.get("id", "")).strip() for item in hallazgos_state if str(item.get("id", "")).strip()]
+        for index, recomendacion in enumerate(recomendaciones_state):
+            st.markdown(f"**Recomendacion {index + 1}**")
+            r1, r2 = st.columns(2)
+            recomendacion["id"] = r1.text_input("ID recomendacion", value=str(recomendacion.get("id", f"R{index+1}")), key=f"rec_id_{audit['id']}_{index}", disabled=read_only)
+            recomendacion["hallazgoId"] = r2.selectbox(
+                "Hallazgo de referencia",
+                hallazgo_ids or ["H1"],
+                index=max(0, (hallazgo_ids or ["H1"]).index(str(recomendacion.get("hallazgoId"))) if str(recomendacion.get("hallazgoId")) in (hallazgo_ids or ["H1"]) else 0),
+                key=f"rec_hallazgo_{audit['id']}_{index}",
+                disabled=read_only,
+            )
+            recomendacion["descripcion"] = st.text_area(
+                "Descripcion de la recomendacion",
+                value=str(recomendacion.get("descripcion", "")),
+                height=120,
+                key=f"rec_desc_{audit['id']}_{index}",
+                disabled=read_only,
+            ).strip()
+            if not read_only and len(recomendaciones_state) > 1 and st.button("Eliminar recomendacion", key=f"del_rec_{audit['id']}_{index}"):
+                recomendaciones_state.pop(index)
+                st.rerun()
     hallazgos_payload = [
         {
-            "id": hallazgo_id.strip(),
-            "indicador": str(indicador).strip(),
-            "gravedad": str(gravedad).strip().lower(),
-            "descripcion": hallazgo_desc.strip(),
+            "id": str(item.get("id", "")).strip(),
+            "indicador": str(item.get("indicador", "")).strip(),
+            "gravedad": str(item.get("gravedad", "")).strip().lower(),
+            "descripcion": str(item.get("descripcion", "")).strip(),
         }
+        for item in hallazgos_state
     ]
+    hallazgos_validos = [
+        item for item in hallazgos_payload
+        if item["id"] and item["indicador"] and item["gravedad"] in {"alta", "media", "baja"} and item["descripcion"]
+    ]
+    hallazgo_ids_validos = {item["id"] for item in hallazgos_validos}
     recomendaciones_payload = [
         {
-            "id": recomendacion_id.strip(),
-            "hallazgoId": hallazgo_ref.strip(),
-            "descripcion": recomendacion_desc.strip(),
+            "id": str(item.get("id", "")).strip(),
+            "hallazgoId": str(item.get("hallazgoId", "")).strip(),
+            "descripcion": str(item.get("descripcion", "")).strip(),
         }
+        for item in recomendaciones_state
     ]
-    hallazgo_ok = all(hallazgos_payload[0].values())
-    recomendacion_ok = all(recomendaciones_payload[0].values()) and recomendaciones_payload[0]["hallazgoId"] == hallazgos_payload[0]["id"]
+    recomendaciones_validas = [
+        item for item in recomendaciones_payload
+        if item["id"] and item["hallazgoId"] in hallazgo_ids_validos and item["descripcion"]
+    ]
+    hallazgo_ok = len(hallazgos_validos) > 0
+    recomendacion_ok = len(recomendaciones_validas) > 0
     checklist = [
         ("Indicadores completos", not faltantes),
         ("Hallazgos completos", hallazgo_ok),
@@ -1491,7 +1586,17 @@ def render_close_section(audit: dict) -> None:
             motivos.append("Debes cargar una recomendacion valida vinculada al hallazgo.")
         motivos_html = "".join(f"<li>{html.escape(item)}</li>" for item in motivos)
         st.markdown(f'<div class="cierre-note warn"><strong>Motivos de bloqueo</strong><ul>{motivos_html}</ul></div>', unsafe_allow_html=True)
-    if st.button("Cerrar auditoria", type="primary", use_container_width=True, disabled=bool(faltantes or not hallazgo_ok or not recomendacion_ok)):
+    import json
+    save1, save2 = st.columns(2)
+    if save1.button("Guardar hallazgos y recomendaciones", use_container_width=True, disabled=read_only):
+        save_close_draft(
+            audit["id"],
+            json.dumps(hallazgos_payload, ensure_ascii=True),
+            json.dumps(recomendaciones_payload, ensure_ascii=True),
+        )
+        st.success("Borrador guardado correctamente.")
+        st.rerun()
+    if save2.button("Cerrar auditoria", type="primary", use_container_width=True, disabled=bool(read_only or faltantes or not hallazgo_ok or not recomendacion_ok)):
         import json
 
         close_audit(
