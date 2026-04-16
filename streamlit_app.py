@@ -92,6 +92,87 @@ def inject_styles() -> None:
             border-radius: 12px;
             min-height: 46px;
         }
+        .stForm {
+            background: rgba(255,255,255,.72);
+            border: 1px solid #dbe4f2;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 10px 24px rgba(15,23,42,.05);
+        }
+        .stTextInput > label,
+        .stTextArea > label,
+        .stDateInput > label,
+        .stNumberInput > label,
+        .stSelectbox > label,
+        .stFileUploader > label {
+            color:#64748b !important;
+            font-size:12px !important;
+            text-transform:uppercase;
+            letter-spacing:.08em;
+            font-weight:800 !important;
+        }
+        .stTextInput input,
+        .stNumberInput input,
+        .stDateInput input,
+        .stTextArea textarea {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+            color:#0f172a !important;
+            border:1px solid #d6e0f0 !important;
+            border-radius:12px !important;
+            box-shadow:none !important;
+        }
+        .stTextInput input::placeholder,
+        .stNumberInput input::placeholder,
+        .stDateInput input::placeholder,
+        .stTextArea textarea::placeholder {
+            color:#94a3b8 !important;
+        }
+        .stTextInput input:focus,
+        .stNumberInput input:focus,
+        .stDateInput input:focus,
+        .stTextArea textarea:focus {
+            border-color:#818cf8 !important;
+            box-shadow:0 0 0 4px rgba(99,102,241,.12) !important;
+        }
+        .stTextArea textarea {
+            min-height: 124px !important;
+        }
+        .stSelectbox div[data-baseweb="select"] > div,
+        .stMultiSelect div[data-baseweb="select"] > div {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+            color:#0f172a !important;
+            border:1px solid #d6e0f0 !important;
+            border-radius:12px !important;
+            min-height:48px !important;
+            box-shadow:none !important;
+        }
+        .stSelectbox div[data-baseweb="select"] span,
+        .stMultiSelect div[data-baseweb="select"] span,
+        .stSelectbox div[data-baseweb="select"] svg,
+        .stMultiSelect div[data-baseweb="select"] svg {
+            color:#334155 !important;
+            fill:#334155 !important;
+        }
+        .stFileUploader [data-testid="stFileUploaderDropzone"] {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+            border: 1px solid #d6e0f0 !important;
+            border-radius: 16px !important;
+            padding: 16px !important;
+        }
+        .stFileUploader [data-testid="stFileUploaderDropzone"]:hover {
+            border-color:#a5b4fc !important;
+            background:#f8fbff !important;
+        }
+        .stFileUploader [data-testid="stFileUploaderDropzone"] * {
+            color:#475569 !important;
+        }
+        .stFileUploader section button {
+            background:#ffffff !important;
+            color:#334155 !important;
+            border:1px solid #cbd5e1 !important;
+            border-radius:12px !important;
+            box-shadow:none !important;
+        }
         .sidebar-group-title {
             color:#c7d3f8;
             font-size:12px;
@@ -377,6 +458,12 @@ def inject_styles() -> None:
         div[data-testid="stDataEditor"] [data-testid="stTable"] tbody tr:nth-child(even) {
             background: #fbfdff !important;
         }
+        div[data-testid="stDataFrame"] [data-testid="stTable"] tbody tr td,
+        div[data-testid="stDataEditor"] [data-testid="stTable"] tbody tr td {
+            color:#0f172a !important;
+            background:#ffffff !important;
+            border-bottom:1px solid #e7edf7 !important;
+        }
         div[data-testid="stDataFrame"] [data-testid="stTable"] tbody tr:hover,
         div[data-testid="stDataEditor"] [data-testid="stTable"] tbody tr:hover {
             background: #f5f8ff !important;
@@ -387,6 +474,17 @@ def inject_styles() -> None:
             border: 1px solid #dbe4f2;
             box-shadow: 0 6px 18px rgba(15,23,42,.05);
             background: white;
+        }
+        div[data-testid="stDataEditor"] input,
+        div[data-testid="stDataEditor"] textarea,
+        div[data-testid="stDataEditor"] select {
+            background:#ffffff !important;
+            color:#0f172a !important;
+            border:1px solid #cfd9ea !important;
+            border-radius:8px !important;
+        }
+        div[data-testid="stDataEditor"] input[type="checkbox"] {
+            accent-color:#6366f1 !important;
         }
         .mini-kpi {
             background:#f8fbff;
@@ -526,12 +624,20 @@ def inject_styles() -> None:
         .stButton > button, .stDownloadButton > button {
             border-radius: 11px !important;
             font-weight: 700 !important;
-            border: 1px solid transparent !important;
+            border: 1px solid #d6e0f0 !important;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%) !important;
+            color:#1e293b !important;
+            box-shadow: 0 6px 18px rgba(15,23,42,.05);
         }
         .stButton > button[kind="primary"], .stDownloadButton > button {
             background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%) !important;
             color: white !important;
+            border-color:#818cf8 !important;
             box-shadow: 0 8px 20px rgba(79,70,229,.22);
+        }
+        .stButton > button:hover {
+            border-color:#a5b4fc !important;
+            background:#f8fbff !important;
         }
         .stTabs [data-baseweb="tab-list"] {
             gap: 10px;
