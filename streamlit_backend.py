@@ -841,7 +841,12 @@ def import_transferencias(auditoria_id: str, sucursal: str, fecha_realizacion: s
             (auditoria_id,),
         ).fetchall()
         control_by_modulo = {row["modulo_numero"]: row["id"] for row in controls}
-        conn.execute("DELETE FROM transferencias WHERE auditoria_id = ?", (auditoria_id,))
+        if 1 not in control_by_modulo or 9 not in control_by_modulo:
+            raise ValueError("La auditoria no tiene creados los modulos 1 y 9.")
+        conn.execute(
+            "DELETE FROM transferencias WHERE auditoria_id = ? AND modulo_numero IN (1, 9)",
+            (auditoria_id,),
+        )
 
         for raw_row in matrix[header_index + 1 :]:
             if not any(str(cell).strip() for cell in raw_row):
@@ -882,6 +887,31 @@ def import_transferencias(auditoria_id: str, sucursal: str, fecha_realizacion: s
 
         _recalculate_transfer_module(conn, auditoria_id, 1)
         _recalculate_transfer_module(conn, auditoria_id, 9)
+        conn.commit()
+    recalculate_audit(auditoria_id)
+
+
+def save_transferencia_edit(auditoria_id: str, transferencia_id: str, justificado: bool, observacion: str) -> None:
+    with get_connection() as conn:
+        current = conn.execute(
+            "SELECT id, auditoria_id, modulo_numero, cumple_base FROM transferencias WHERE id = ? AND auditoria_id = ?",
+            (transferencia_id, auditoria_id),
+        ).fetchone()
+        if current is None:
+            raise ValueError("Transferencia no encontrada.")
+
+        justificado_int = 1 if bool(justificado) else 0
+        observacion_text = str(observacion or "").strip()
+        cumple_final = 1 if int(current["cumple_base"] or 0) == 1 or justificado_int == 1 else 0
+        conn.execute(
+            """
+            UPDATE transferencias
+            SET justificado = ?, observacion = ?, cumple_final = ?, fecha_actualizacion = CURRENT_TIMESTAMP
+            WHERE id = ? AND auditoria_id = ?
+            """,
+            (justificado_int, observacion_text, cumple_final, transferencia_id, auditoria_id),
+        )
+        _recalculate_transfer_module(conn, auditoria_id, int(current["modulo_numero"]))
         conn.commit()
     recalculate_audit(auditoria_id)
 

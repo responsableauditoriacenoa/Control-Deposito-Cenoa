@@ -27,7 +27,7 @@ from streamlit_backend import (
     save_close_draft,
     save_config,
     save_creditos_edits,
-    save_transferencias_edits,
+    save_transferencia_edit,
     save_ventas_edits,
     update_manual_control,
 )
@@ -599,6 +599,75 @@ def inject_styles() -> None:
             flex-direction:column;
             gap:10px;
         }
+        .transfer-row-card {
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+            border: 1px solid #dbe4f2;
+            border-radius: 18px;
+            padding: 16px 18px;
+            box-shadow: 0 10px 24px rgba(15,23,42,.05);
+            margin-top: 14px;
+        }
+        .transfer-row-head {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:14px;
+            margin-bottom:14px;
+        }
+        .transfer-row-title {
+            font-size:16px;
+            font-weight:800;
+            color:#0f172a;
+        }
+        .transfer-row-subtitle {
+            margin-top:4px;
+            color:#64748b;
+            font-size:13px;
+        }
+        .transfer-meta-grid {
+            display:grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap:12px;
+            margin-bottom:14px;
+        }
+        .transfer-meta-item {
+            background:#f8fbff;
+            border:1px solid #e2e8f0;
+            border-radius:14px;
+            padding:12px 14px;
+        }
+        .transfer-meta-label {
+            color:#64748b;
+            font-size:11px;
+            text-transform:uppercase;
+            letter-spacing:.08em;
+            font-weight:800;
+        }
+        .transfer-meta-value {
+            color:#0f172a;
+            font-size:15px;
+            font-weight:700;
+            margin-top:6px;
+            word-break:break-word;
+        }
+        .status-pill.status-ok {
+            background:#dcfce7;
+            color:#166534;
+        }
+        .status-pill.status-bad {
+            background:#fee2e2;
+            color:#b91c1c;
+        }
+        .transfer-help {
+            color:#64748b;
+            font-size:13px;
+            margin-top:4px;
+        }
+        @media (max-width: 1200px) {
+            .transfer-meta-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
         .sidebar-session-label {
             font-size:12px;
             color:#c7d3f8;
@@ -743,6 +812,12 @@ def status_pill(value: object) -> str:
     return f'<span class="status-pill {cls}">{html.escape(label)}</span>'
 
 
+def yes_no_pill(value: bool, ok_label: str = "Si cumple", bad_label: str = "No cumple") -> str:
+    cls = "status-ok" if value else "status-bad"
+    label = ok_label if value else bad_label
+    return f'<span class="status-pill {cls}">{html.escape(label)}</span>'
+
+
 def render_readonly_table(rows: list[dict[str, str]], columns: list[tuple[str, str]]) -> None:
     head = "".join(f"<th>{html.escape(label)}</th>" for _, label in columns)
     body_rows: list[str] = []
@@ -813,6 +888,76 @@ def mini_kpi_row(items: list[tuple[str, str]]) -> None:
                 ),
                 unsafe_allow_html=True,
             )
+
+
+def render_transfer_row_editor(audit: dict, modulo: int, row: pd.Series) -> None:
+    row_id = str(row["id"])
+    requiere_revision = int(row.get("cumple_base", 0) or 0) == 0
+    title = pretty_text(row.get("numero_comprobante"))
+    if title == "-":
+        title = "Sin comprobante"
+    status_html = yes_no_pill(int(row.get("cumple_final", 0) or 0) == 1)
+    base_html = yes_no_pill(not requiere_revision, ok_label="Cumple base", bad_label="No cumple base")
+
+    meta_items = [
+        ("Fecha", pretty_date(row.get("fecha_transferencia"))),
+        ("Sucursal origen", pretty_text(row.get("sucursal_origen"))),
+        ("Sucursal destino", pretty_text(row.get("sucursal_destino"))),
+        ("Dias habiles", pretty_text(row.get("dias_habiles"))),
+        ("Estado", status_html),
+    ]
+    meta_html = "".join(
+        (
+            '<div class="transfer-meta-item">'
+            f'<div class="transfer-meta-label">{html.escape(label)}</div>'
+            f'<div class="transfer-meta-value">{value}</div>'
+            "</div>"
+        )
+        for label, value in meta_items
+    )
+
+    st.markdown(
+        (
+            '<div class="transfer-row-card">'
+            '<div class="transfer-row-head">'
+            '<div>'
+            f'<div class="transfer-row-title">{html.escape(title)}</div>'
+            f'<div class="transfer-row-subtitle">{base_html}</div>'
+            '</div>'
+            '</div>'
+            f'<div class="transfer-meta-grid">{meta_html}</div>'
+        ),
+        unsafe_allow_html=True,
+    )
+    with st.form(f"transfer_form_{modulo}_{row_id}", border=False):
+        col1, col2 = st.columns([1, 2.2])
+        with col1:
+            justificado = st.checkbox(
+                "Justificado",
+                value=bool(row.get("justificado")),
+                disabled=not requiere_revision,
+                help="Solo se habilita cuando la transferencia no cumple por dias habiles.",
+                key=f"transfer_just_{modulo}_{row_id}",
+            )
+        with col2:
+            observacion = st.text_area(
+                "Observacion",
+                value="" if pretty_text(row.get("observacion"), default="") == "-" else pretty_text(row.get("observacion"), default=""),
+                disabled=not requiere_revision,
+                key=f"transfer_obs_{modulo}_{row_id}",
+                placeholder="Describe el motivo de la justificacion o el seguimiento requerido.",
+            )
+        if not requiere_revision:
+            st.markdown(
+                '<div class="transfer-help">Esta transferencia ya cumple por antiguedad. La justificacion y la observacion quedan bloqueadas, igual que en la app original.</div>',
+                unsafe_allow_html=True,
+            )
+        submitted = st.form_submit_button("Guardar transferencia", use_container_width=True)
+        if submitted:
+            save_transferencia_edit(audit["id"], row_id, justificado, observacion)
+            st.success("Transferencia actualizada.")
+            st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def compute_dashboard_metrics(audits: list[dict]) -> dict[str, str]:
@@ -1355,29 +1500,39 @@ def render_transfer_section(audit: dict, modulo: int) -> None:
         ("No cumplen", str(observadas)),
         ("% Cumplimiento", fmt_percent(cumplen / total if total else 0)),
     ])
-    edited = st.data_editor(
-        df,
-        use_container_width=True,
-        hide_index=True,
-        disabled=["id", "fecha_transferencia", "numero_comprobante", "sucursal_origen", "sucursal_destino", "dias_habiles", "cumple_base", "cumple_final"],
-        key=f"transfer_editor_{modulo}",
-        column_config={
-            "fecha_transferencia": st.column_config.TextColumn("Fecha", width="small"),
-            "numero_comprobante": st.column_config.TextColumn("Comprobante", width="small"),
-            "sucursal_origen": st.column_config.TextColumn("Origen", width="medium"),
-            "sucursal_destino": st.column_config.TextColumn("Destino", width="medium"),
-            "dias_habiles": st.column_config.NumberColumn("Dias", width="small"),
-            "justificado": st.column_config.CheckboxColumn(
-                "Justificado",
-                help="Solo aplica cuando la transferencia no cumple por dias habiles.",
-            ),
-            "observacion": st.column_config.TextColumn("Observacion", width="large"),
-        },
+    summary_rows: list[dict[str, str]] = []
+    for _, row in df.iterrows():
+        summary_rows.append(
+            {
+                "fecha": pretty_date(row.get("fecha_transferencia")),
+                "comprobante": html.escape(pretty_text(row.get("numero_comprobante"))),
+                "origen": html.escape(pretty_text(row.get("sucursal_origen"))),
+                "destino": html.escape(pretty_text(row.get("sucursal_destino"))),
+                "dias": html.escape(pretty_text(row.get("dias_habiles"))),
+                "cumple_base": yes_no_pill(int(row.get("cumple_base", 0) or 0) == 1, ok_label="Si", bad_label="No"),
+                "cumple_final": yes_no_pill(int(row.get("cumple_final", 0) or 0) == 1),
+                "justificado": yes_no_pill(bool(row.get("justificado")), ok_label="Si", bad_label="No"),
+            }
+        )
+    render_readonly_table(
+        summary_rows,
+        [
+            ("fecha", "Fecha"),
+            ("comprobante", "Comprobante"),
+            ("origen", "Origen"),
+            ("destino", "Destino"),
+            ("dias", "Dias"),
+            ("cumple_base", "Cumple base"),
+            ("cumple_final", "Estado"),
+            ("justificado", "Justificado"),
+        ],
     )
-    if st.button("Guardar cambios", key=f"save_transfer_{modulo}"):
-        save_transferencias_edits(audit["id"], modulo, edited)
-        st.success("Transferencias actualizadas.")
-        st.rerun()
+    st.markdown(
+        '<div class="helper-text">Cada transferencia se edita y se guarda individualmente, igual que en la app original.</div>',
+        unsafe_allow_html=True,
+    )
+    for _, row in df.iterrows():
+        render_transfer_row_editor(audit, modulo, row)
 
 
 def render_creditos_section(audit: dict) -> None:
