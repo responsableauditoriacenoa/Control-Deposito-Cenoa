@@ -682,11 +682,31 @@ def parse_excel_date(value: Any) -> datetime | None:
         return value
     if isinstance(value, date):
         return datetime(value.year, value.month, value.day)
+    if isinstance(value, (int, float)):
+        try:
+            if value < 20000 or value > 80000:
+                return None
+        except Exception:
+            return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if text.isdigit() and len(text) > 5:
+        return None
+    for fmt in ("%d/%m/%Y", "%d/%m/%y"):
+        try:
+            parsed = datetime.strptime(text, fmt)
+            if 2000 <= parsed.year <= 2100:
+                return parsed
+        except Exception:
+            pass
     try:
-        parsed = pd.to_datetime(value, errors="coerce", dayfirst=True)
+        parsed = pd.to_datetime(text, errors="coerce")
     except Exception:
         return None
     if pd.isna(parsed):
+        return None
+    if not (2000 <= parsed.year <= 2100):
         return None
     return parsed.to_pydatetime()
 
@@ -700,13 +720,24 @@ def to_number(value: Any) -> float | None:
     if not text:
         return None
     text = "".join(char for char in text if char.isdigit() or char in ",.-")
-    if text.count(",") and text.count("."):
-        if text.rfind(",") > text.rfind("."):
+    if not text:
+        return None
+    has_comma = "," in text
+    has_dot = "." in text
+    if has_comma and has_dot:
+        last_comma = text.rfind(",")
+        last_dot = text.rfind(".")
+        if last_comma > last_dot:
             text = text.replace(".", "").replace(",", ".")
         else:
             text = text.replace(",", "")
-    elif text.count(","):
-        text = text.replace(".", "").replace(",", ".")
+    elif has_comma:
+        parts = text.split(",")
+        text = text.replace(",", ".") if len(parts[-1]) <= 2 else text.replace(",", "")
+    elif has_dot:
+        parts = text.split(".")
+        text = text if len(parts[-1]) <= 2 else text.replace(".", "")
+    text = text[0] + text[1:].replace("-", "") if text.startswith("-") else text.replace("-", "")
     try:
         return float(text)
     except ValueError:
@@ -754,10 +785,13 @@ def map_headers(header_row: list[Any]) -> dict[str, int]:
     normalized = [normalize_text(cell) for cell in header_row]
     mapping: dict[str, int] = {}
     for key, values in aliases.items():
+        matches: list[int] = []
         for idx, header in enumerate(normalized):
             if header in values:
-                mapping[key] = idx
-                break
+                matches.append(idx)
+        if not matches:
+            continue
+        mapping[key] = matches[-1] if key == "importe" and len(matches) > 1 else matches[0]
     return mapping
 
 
