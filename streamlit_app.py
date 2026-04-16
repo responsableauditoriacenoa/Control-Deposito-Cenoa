@@ -7,30 +7,52 @@ import io
 import pandas as pd
 import streamlit as st
 
-from streamlit_backend import (
-    AUDITORES_DEFAULT,
-    DB_DISPLAY,
-    MODULOS_ACTIVOS,
-    MODULO_NOMBRES,
-    PONDERACION_EQUIVALENTE,
-    close_audit,
-    create_audit,
-    fetch_table,
-    get_audit,
-    get_config,
-    import_creditos,
-    import_transferencias,
-    import_ventas_internas,
-    init_db,
-    list_audits,
-    list_reports,
-    save_close_draft,
-    save_config,
-    save_creditos_edits,
-    save_transferencia_edit,
-    save_ventas_edits,
-    update_manual_control,
-)
+import streamlit_backend as backend
+
+
+AUDITORES_DEFAULT = backend.AUDITORES_DEFAULT
+DB_DISPLAY = backend.DB_DISPLAY
+MODULOS_ACTIVOS = backend.MODULOS_ACTIVOS
+MODULO_NOMBRES = backend.MODULO_NOMBRES
+PONDERACION_EQUIVALENTE = backend.PONDERACION_EQUIVALENTE
+close_audit = backend.close_audit
+create_audit = backend.create_audit
+fetch_table = backend.fetch_table
+get_audit = backend.get_audit
+get_config = backend.get_config
+import_creditos = backend.import_creditos
+import_transferencias = backend.import_transferencias
+import_ventas_internas = backend.import_ventas_internas
+init_db = backend.init_db
+list_audits = backend.list_audits
+list_reports = backend.list_reports
+save_close_draft = backend.save_close_draft
+save_config = backend.save_config
+save_creditos_edits = backend.save_creditos_edits
+save_ventas_edits = backend.save_ventas_edits
+update_manual_control = backend.update_manual_control
+
+
+def save_transferencia_edit(auditoria_id: str, transferencia_id: str, justificado: bool, observacion: str) -> None:
+    single_row_saver = getattr(backend, "save_transferencia_edit", None)
+    if callable(single_row_saver):
+        single_row_saver(auditoria_id, transferencia_id, justificado, observacion)
+        return
+
+    rows = fetch_table(
+        """
+        SELECT id, fecha_transferencia, numero_comprobante, sucursal_origen, sucursal_destino,
+               modulo_numero, dias_habiles, cumple_base, justificado, cumple_final, observacion
+        FROM transferencias
+        WHERE auditoria_id = ? AND id = ?
+        """,
+        (auditoria_id, transferencia_id),
+    )
+    if rows.empty:
+        raise ValueError("Transferencia no encontrada.")
+    rows.loc[:, "justificado"] = bool(justificado)
+    rows.loc[:, "observacion"] = str(observacion or "").strip()
+    backend.save_transferencias_edits(auditoria_id, int(rows.iloc[0]["modulo_numero"]), rows)
 
 
 st.set_page_config(page_title="Control Integral de Depositos", layout="wide")
