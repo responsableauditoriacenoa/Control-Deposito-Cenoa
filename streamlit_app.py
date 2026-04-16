@@ -1308,8 +1308,10 @@ def render_new_audit() -> None:
                 st.session_state["selected_audit_id"] = auditoria_id
                 st.success("Auditoria creada correctamente.")
                 st.rerun()
+            except ValueError as error:
+                st.warning(str(error))
             except Exception as error:
-                st.error(str(error))
+                st.error("No se pudo crear la auditoria. Si el problema persiste, revisamos el detalle tecnico.")
 
 
 def render_configuracion() -> None:

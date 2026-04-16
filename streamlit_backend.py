@@ -525,6 +525,9 @@ def get_audit(auditoria_id: str) -> dict[str, Any] | None:
 
 
 def create_audit(codigo: str, auditor_id: str, empresa: str, sucursal: str, fecha_realizacion: date) -> str:
+    codigo_limpio = str(codigo or "").strip()
+    if not codigo_limpio:
+        raise ValueError("Debes ingresar un codigo de auditoria.")
     config = get_config()
     if sucursal not in config["sucursales_por_empresa"].get(empresa, []):
         raise ValueError("La sucursal no corresponde a la empresa seleccionada.")
@@ -532,12 +535,18 @@ def create_audit(codigo: str, auditor_id: str, empresa: str, sucursal: str, fech
     auditoria_id = str(uuid.uuid4())
     iso_date = datetime.combine(fecha_realizacion, datetime.min.time(), tzinfo=timezone.utc).isoformat()
     with get_connection() as conn:
+        existente = conn.execute(
+            "SELECT id FROM auditorias WHERE LOWER(codigo) = LOWER(?)",
+            (codigo_limpio,),
+        ).fetchone()
+        if existente:
+            raise ValueError(f"Ya existe una auditoria con el codigo '{codigo_limpio}'. Usa otro codigo.")
         conn.execute(
             """
             INSERT INTO auditorias (id, codigo, auditor_id, empresa, sucursal, fecha_realizacion, estado)
             VALUES (?, ?, ?, ?, ?, ?, 'en_progreso')
             """,
-            (auditoria_id, codigo.strip(), auditor_id, empresa, sucursal, iso_date),
+            (auditoria_id, codigo_limpio, auditor_id, empresa, sucursal, iso_date),
         )
         ponderaciones = config["ponderaciones"]
         for modulo in MODULOS_ACTIVOS:
