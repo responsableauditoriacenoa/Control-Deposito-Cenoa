@@ -33,6 +33,28 @@ save_ventas_edits = backend.save_ventas_edits
 update_manual_control = backend.update_manual_control
 
 
+def save_credito_edit(auditoria_id: str, credito_id: str, tiene_reclamo: bool, observacion: str) -> None:
+    single_row_saver = getattr(backend, "save_credito_edit", None)
+    if callable(single_row_saver):
+        single_row_saver(auditoria_id, credito_id, tiene_reclamo, observacion)
+        return
+
+    rows = fetch_table(
+        """
+        SELECT id, fecha, articulo, numero_comprobante, sucursal_origen, sucursal_destino,
+               cantidad, importe, tiene_reclamo, cumple_final, observacion
+        FROM creditos_pendientes
+        WHERE auditoria_id = ? AND id = ?
+        """,
+        (auditoria_id, credito_id),
+    )
+    if rows.empty:
+        raise ValueError("Registro de credito no encontrado.")
+    rows.loc[:, "tiene_reclamo"] = bool(tiene_reclamo)
+    rows.loc[:, "observacion"] = str(observacion or "").strip()
+    backend.save_creditos_edits(auditoria_id, rows)
+
+
 def save_transferencia_edit(auditoria_id: str, transferencia_id: str, justificado: bool, observacion: str) -> None:
     single_row_saver = getattr(backend, "save_transferencia_edit", None)
     if callable(single_row_saver):
@@ -982,6 +1004,73 @@ def render_transfer_row_editor(audit: dict, modulo: int, row: pd.Series) -> None
     st.markdown("</div>", unsafe_allow_html=True)
 
 
+def render_credito_row_editor(audit: dict, row: pd.Series) -> None:
+    row_id = str(row["id"])
+    title = pretty_text(row.get("numero_comprobante"))
+    if title == "-":
+        title = "Sin comprobante"
+    status_html = yes_no_pill(int(row.get("cumple_final", 0) or 0) == 1)
+
+    meta_items = [
+        ("Fecha", pretty_date(row.get("fecha"))),
+        ("Articulo", pretty_text(row.get("articulo"))),
+        ("Cantidad", pretty_text(row.get("cantidad"))),
+        ("Importe", pretty_text(row.get("importe"))),
+        ("Estado", status_html),
+    ]
+    meta_html = "".join(
+        (
+            '<div class="transfer-meta-item">'
+            f'<div class="transfer-meta-label">{html.escape(label)}</div>'
+            f'<div class="transfer-meta-value">{value}</div>'
+            "</div>"
+        )
+        for label, value in meta_items
+    )
+
+    st.markdown(
+        (
+            '<div class="transfer-row-card">'
+            '<div class="transfer-row-head">'
+            '<div>'
+            f'<div class="transfer-row-title">{html.escape(title)}</div>'
+            f'<div class="transfer-row-subtitle">{html.escape(pretty_text(row.get("sucursal_origen")))} -> {html.escape(pretty_text(row.get("sucursal_destino")))}</div>'
+            '</div>'
+            '</div>'
+            f'<div class="transfer-meta-grid">{meta_html}</div>'
+        ),
+        unsafe_allow_html=True,
+    )
+    with st.form(f"credito_form_{row_id}", border=False):
+        col1, col2 = st.columns([1, 2.2])
+        with col1:
+            reclamo_label = "Si" if bool(row.get("tiene_reclamo")) else "No"
+            tiene_reclamo = st.selectbox(
+                "Tiene reclamo",
+                options=["No", "Si"],
+                index=1 if bool(row.get("tiene_reclamo")) else 0,
+                key=f"credito_reclamo_{row_id}",
+                help="Replica la seleccion Si/No de la app original.",
+            )
+        with col2:
+            observacion = st.text_area(
+                "Observacion",
+                value="" if pretty_text(row.get("observacion"), default="") == "-" else pretty_text(row.get("observacion"), default=""),
+                key=f"credito_obs_{row_id}",
+                placeholder="Agrega contexto del reclamo o seguimiento realizado.",
+            )
+        st.markdown(
+            f'<div class="transfer-help">Seleccion actual: <strong>{html.escape(reclamo_label)}</strong>. Si el reclamo es "Si", el registro pasa a cumplir.</div>',
+            unsafe_allow_html=True,
+        )
+        submitted = st.form_submit_button("Guardar credito", use_container_width=True)
+        if submitted:
+            save_credito_edit(audit["id"], row_id, tiene_reclamo == "Si", observacion)
+            st.success("Credito actualizado.")
+            st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def compute_dashboard_metrics(audits: list[dict]) -> dict[str, str]:
     if not audits:
         return {
@@ -1592,26 +1681,37 @@ def render_creditos_section(audit: dict) -> None:
         ("No cumplen", str(observadas)),
         ("% Cumplimiento", fmt_percent(cumplen / total if total else 0)),
     ])
-    edited = st.data_editor(
-        df,
-        use_container_width=True,
-        hide_index=True,
-        disabled=["id", "fecha", "articulo", "numero_comprobante", "sucursal_origen", "sucursal_destino", "cantidad", "importe", "cumple_final"],
-        key="creditos_editor",
-        column_config={
-            "fecha": st.column_config.TextColumn("Fecha", width="small"),
-            "articulo": st.column_config.TextColumn("Articulo", width="medium"),
-            "numero_comprobante": st.column_config.TextColumn("Comprobante", width="small"),
-            "cantidad": st.column_config.NumberColumn("Cantidad", width="small", format="%.2f"),
-            "importe": st.column_config.NumberColumn("Importe", width="small", format="%.2f"),
-            "tiene_reclamo": st.column_config.CheckboxColumn("Reclamo"),
-            "observacion": st.column_config.TextColumn("Observacion", width="large"),
-        },
+    summary_rows: list[dict[str, str]] = []
+    for _, row in df.iterrows():
+        summary_rows.append(
+            {
+                "fecha": pretty_date(row.get("fecha")),
+                "articulo": html.escape(pretty_text(row.get("articulo"))),
+                "comprobante": html.escape(pretty_text(row.get("numero_comprobante"))),
+                "cantidad": html.escape(pretty_text(row.get("cantidad"))),
+                "importe": html.escape(pretty_text(row.get("importe"))),
+                "reclamo": yes_no_pill(bool(row.get("tiene_reclamo")), ok_label="Si", bad_label="No"),
+                "estado": yes_no_pill(int(row.get("cumple_final", 0) or 0) == 1),
+            }
+        )
+    render_readonly_table(
+        summary_rows,
+        [
+            ("fecha", "Fecha"),
+            ("articulo", "Articulo"),
+            ("comprobante", "Comprobante"),
+            ("cantidad", "Cantidad"),
+            ("importe", "Importe"),
+            ("reclamo", "Reclamo"),
+            ("estado", "Estado"),
+        ],
     )
-    if st.button("Guardar cambios creditos"):
-        save_creditos_edits(audit["id"], edited)
-        st.success("Creditos actualizados.")
-        st.rerun()
+    st.markdown(
+        '<div class="helper-text">Cada credito se edita y se guarda individualmente, igual que en la app original.</div>',
+        unsafe_allow_html=True,
+    )
+    for _, row in df.iterrows():
+        render_credito_row_editor(audit, row)
 
 
 def render_ventas_section(audit: dict) -> None:

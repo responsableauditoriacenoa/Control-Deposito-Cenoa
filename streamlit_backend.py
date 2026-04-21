@@ -978,6 +978,8 @@ def import_creditos(auditoria_id: str, uploaded_file: Any) -> None:
             "SELECT id FROM controles WHERE auditoria_id = ? AND modulo_numero = 2",
             (auditoria_id,),
         ).fetchone()
+        if not control:
+            raise ValueError("La auditoria no tiene creado el modulo 2.")
         conn.execute("DELETE FROM creditos_pendientes WHERE auditoria_id = ?", (auditoria_id,))
         for raw_row in matrix[header_index + 1 :]:
             if not any(str(cell).strip() for cell in raw_row):
@@ -1007,6 +1009,31 @@ def import_creditos(auditoria_id: str, uploaded_file: Any) -> None:
                     to_json(raw_row),
                 ),
             )
+        _recalculate_creditos_module(conn, auditoria_id)
+        conn.commit()
+    recalculate_audit(auditoria_id)
+
+
+def save_credito_edit(auditoria_id: str, credito_id: str, tiene_reclamo: bool, observacion: str) -> None:
+    with get_connection() as conn:
+        current = conn.execute(
+            "SELECT id FROM creditos_pendientes WHERE id = ? AND auditoria_id = ?",
+            (credito_id, auditoria_id),
+        ).fetchone()
+        if current is None:
+            raise ValueError("Registro de credito no encontrado.")
+
+        tiene_reclamo_int = 1 if bool(tiene_reclamo) else 0
+        cumple_final = 1 if tiene_reclamo_int == 1 else 0
+        observacion_text = str(observacion or "").strip()
+        conn.execute(
+            """
+            UPDATE creditos_pendientes
+            SET tiene_reclamo = ?, cumple_final = ?, observacion = ?, fecha_actualizacion = CURRENT_TIMESTAMP
+            WHERE id = ? AND auditoria_id = ?
+            """,
+            (tiene_reclamo_int, cumple_final, observacion_text, credito_id, auditoria_id),
+        )
         _recalculate_creditos_module(conn, auditoria_id)
         conn.commit()
     recalculate_audit(auditoria_id)
