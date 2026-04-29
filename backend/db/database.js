@@ -77,6 +77,91 @@ function normalizeList(list) {
   return [...new Set((list || []).map((item) => String(item || '').trim()).filter(Boolean))].sort();
 }
 
+function normalizeNarrativeText(value) {
+  const text = String(value ?? '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\t/g, ' ')
+    .replace(/[ ]{2,}/g, ' ')
+    .replace(/\s+\n/g, '\n')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+  return text;
+}
+
+export function sanitizeNarrativeJson(rawValue) {
+  const text = String(rawValue || '').trim();
+  if (!text) return '';
+
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return text;
+  }
+
+  if (!Array.isArray(parsed)) {
+    return text;
+  }
+
+  const sanitized = parsed.map((item) => {
+    if (!item || typeof item !== 'object') return item;
+    const next = { ...item };
+    if ('descripcion' in next) {
+      next.descripcion = normalizeNarrativeText(next.descripcion) || '';
+    }
+    if ('hallazgoId' in next) {
+      next.hallazgoId = String(next.hallazgoId || '').trim();
+    }
+    if ('indicador' in next) {
+      next.indicador = String(next.indicador || '').trim();
+    }
+    if ('gravedad' in next) {
+      next.gravedad = String(next.gravedad || '').trim().toLowerCase();
+    }
+    if ('id' in next) {
+      next.id = String(next.id || '').trim();
+    }
+    return next;
+  });
+
+  return JSON.stringify(sanitized);
+}
+
+function sanitizeStoredNarratives() {
+  db.all(
+    `SELECT id, hallazgos, recomendaciones FROM auditorias
+     WHERE (hallazgos IS NOT NULL AND TRIM(hallazgos) <> '')
+        OR (recomendaciones IS NOT NULL AND TRIM(recomendaciones) <> '')`,
+    [],
+    (err, rows) => {
+      if (err || !rows?.length) return;
+
+      rows.forEach((row) => {
+        const hallazgos = sanitizeNarrativeJson(row.hallazgos);
+        const recomendaciones = sanitizeNarrativeJson(row.recomendaciones);
+
+        if (hallazgos !== (row.hallazgos || '') || recomendaciones !== (row.recomendaciones || '')) {
+          db.run(
+            `UPDATE auditorias
+             SET hallazgos = ?, recomendaciones = ?, fecha_actualizacion = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [hallazgos, recomendaciones, row.id],
+            (updateErr) => {
+              if (updateErr) {
+                console.warn(`No se pudo sanear narrativa historica para auditoria ${row.id}:`, updateErr.message);
+              }
+            }
+          );
+        }
+      });
+    }
+  );
+}
+
 function isLegacySucursalesPorEmpresaMapping(mapping) {
   const expected = normalizeList(SUCURSALES_LEGACY);
   return EMPRESAS_DEFAULT.every((empresa) => {
@@ -375,6 +460,8 @@ export function initDb() {
       [nombre, Number(moduloNumero)]
     );
   });
+
+  sanitizeStoredNarratives();
 
   console.log('Tablas de base de datos inicializadas');
 }

@@ -2260,6 +2260,20 @@ function exportarInformePDF() {
     if (Number.isNaN(parsed.getTime())) return '-';
     return parsed.toLocaleDateString('es-AR');
   };
+  const cleanPdfText = (value) => {
+    const text = String(value ?? '-')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\u00a0/g, ' ')
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      .replace(/\t/g, ' ')
+      .replace(/\s+\n/g, '\n')
+      .replace(/\n{2,}/g, '\n')
+      .replace(/[ ]{2,}/g, ' ')
+      .trim();
+    return text || '-';
+  };
 
   const EMPRESA_PALETTES = {
     Autolux:  { main: [198, 0, 0],    etapa: [220, 0, 0],    etapaText: [255, 255, 255] },
@@ -2413,16 +2427,38 @@ function exportarInformePDF() {
   doc.autoTable({
     head: [['ID', 'Indicador', 'Gravedad', 'Descripción']],
     body: (hallazgos.length ? hallazgos : [{ id: '-', indicador: '-', gravedad: '-', descripcion: '-' }]).map((item) => ([
-      item.id || '-',
-      item.indicador || '-',
-      item.gravedad || '-',
-      item.descripcion || '-'
+      cleanPdfText(item.id),
+      cleanPdfText(item.indicador),
+      cleanPdfText(item.gravedad),
+      cleanPdfText(item.descripcion)
     ])),
     startY: startY + 22,
     margin: { left: 28, right: 28 },
     theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 5 },
-    headStyles: { fillColor: brandColor, textColor: [255, 255, 255] }
+    styles: {
+      fontSize: 9,
+      cellPadding: { top: 6, right: 6, bottom: 6, left: 6 },
+      overflow: 'linebreak',
+      valign: 'top',
+      lineWidth: 0.5,
+      lineColor: [210, 214, 220],
+      halign: 'left',
+      cellWidth: 'wrap'
+    },
+    headStyles: {
+      fillColor: brandColor,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      valign: 'middle'
+    },
+    alternateRowStyles: { fillColor: [248, 248, 248] },
+    columnStyles: {
+      0: { cellWidth: 34, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 52, halign: 'center' },
+      2: { cellWidth: 64, halign: 'center' },
+      3: { cellWidth: pageWidth - 56 - 34 - 52 - 64 }
+    },
+    rowPageBreak: 'avoid'
   });
 
   let recomendacionesStartY = (doc.lastAutoTable?.finalY || startY + 30) + 20;
@@ -2441,15 +2477,36 @@ function exportarInformePDF() {
   doc.autoTable({
     head: [['ID', 'Hallazgo ref.', 'Descripción']],
     body: (recomendaciones.length ? recomendaciones : [{ id: '-', hallazgoId: '-', descripcion: '-' }]).map((item) => ([
-      item.id || '-',
-      `${item.hallazgoId || '-'}${hallazgosMap.get(item.hallazgoId)?.gravedad ? ` (${String(hallazgosMap.get(item.hallazgoId).gravedad).toUpperCase()})` : ''}`,
-      item.descripcion || '-'
+      cleanPdfText(item.id),
+      cleanPdfText(`${item.hallazgoId || '-'}${hallazgosMap.get(item.hallazgoId)?.gravedad ? ` (${String(hallazgosMap.get(item.hallazgoId).gravedad).toUpperCase()})` : ''}`),
+      cleanPdfText(item.descripcion)
     ])),
     startY: recomendacionesStartY + 22,
     margin: { left: 28, right: 28 },
     theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 5 },
-    headStyles: { fillColor: brandColor, textColor: [255, 255, 255] }
+    styles: {
+      fontSize: 9,
+      cellPadding: { top: 6, right: 6, bottom: 6, left: 6 },
+      overflow: 'linebreak',
+      valign: 'top',
+      lineWidth: 0.5,
+      lineColor: [210, 214, 220],
+      halign: 'left',
+      cellWidth: 'wrap'
+    },
+    headStyles: {
+      fillColor: brandColor,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      valign: 'middle'
+    },
+    alternateRowStyles: { fillColor: [248, 248, 248] },
+    columnStyles: {
+      0: { cellWidth: 34, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 92, halign: 'center' },
+      2: { cellWidth: pageWidth - 56 - 34 - 92 }
+    },
+    rowPageBreak: 'avoid'
   });
 
   doc.save(`Informe_${auditoriaActual.codigo}_${Date.now()}.pdf`);

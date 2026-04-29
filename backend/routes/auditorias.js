@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import XLSX from 'xlsx';
-import { runAsync, getAsync, allAsync } from '../db/database.js';
+import { runAsync, getAsync, allAsync, sanitizeNarrativeJson } from '../db/database.js';
 import { importTransferenciasFromWorkbook, recalculateTransferModule } from '../services/transferencias.js';
 import { importCreditosFromWorkbook, recalculateCreditosModule } from '../services/creditos.js';
 import { importVentasInternasFromWorkbook, recalculateVentasInternasModule } from '../services/ventasInternas.js';
@@ -49,6 +49,15 @@ const ETAPAS_POR_MODULO = {
   8: 'Salidas',
   9: 'Salidas'
 };
+
+function sanitizeAuditNarratives(auditoria) {
+  if (!auditoria) return auditoria;
+  return {
+    ...auditoria,
+    hallazgos: sanitizeNarrativeJson(auditoria.hallazgos),
+    recomendaciones: sanitizeNarrativeJson(auditoria.recomendaciones)
+  };
+}
 
 function normalizePonderaciones(input) {
   const raw = input || {};
@@ -296,7 +305,7 @@ router.get('/', async (req, res) => {
        WHERE a.activa = 1
        ORDER BY a.fecha_creacion DESC`
     );
-    res.json(auditorias);
+    res.json(auditorias.map(sanitizeAuditNarratives));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -315,7 +324,7 @@ router.get('/informes', async (_req, res) => {
        ORDER BY COALESCE(a.fecha_cierre, a.fecha_actualizacion, a.fecha_realizacion) DESC`
     );
 
-    res.json(informes);
+    res.json(informes.map(sanitizeAuditNarratives));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -342,7 +351,7 @@ router.get('/:auditoria_id', async (req, res) => {
       [auditoria_id]
     );
 
-    res.json({ auditoria, controles });
+    res.json({ auditoria: sanitizeAuditNarratives(auditoria), controles });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -779,8 +788,8 @@ router.patch('/:auditoria_id/controles/:control_id', async (req, res) => {
 router.patch('/:auditoria_id/cierre', async (req, res) => {
   try {
     const { auditoria_id } = req.params;
-    const hallazgos = String(req.body.hallazgos || '').trim();
-    const recomendaciones = String(req.body.recomendaciones || '').trim();
+    const hallazgos = sanitizeNarrativeJson(req.body.hallazgos);
+    const recomendaciones = sanitizeNarrativeJson(req.body.recomendaciones);
 
     const auditoria = await getAsync(
       `SELECT * FROM auditorias WHERE id = ? AND activa = 1`,
@@ -844,12 +853,12 @@ router.patch('/:auditoria_id/cierre', async (req, res) => {
       [hallazgos, recomendaciones, scoreFinal, calificacion, auditoria_id]
     );
 
-    const auditoriaActualizada = await getAsync(
+    const auditoriaActualizada = sanitizeAuditNarratives(await getAsync(
       `SELECT a.*, u.nombre as auditor_nombre FROM auditorias a
        LEFT JOIN auditores u ON a.auditor_id = u.id
        WHERE a.id = ? AND a.activa = 1`,
       [auditoria_id]
-    );
+    ));
 
     res.json({ mensaje: 'Auditoría cerrada correctamente', auditoria: auditoriaActualizada });
   } catch (error) {
@@ -860,8 +869,8 @@ router.patch('/:auditoria_id/cierre', async (req, res) => {
 router.patch('/:auditoria_id/cierre-borrador', async (req, res) => {
   try {
     const { auditoria_id } = req.params;
-    const hallazgos = String(req.body.hallazgos || '').trim();
-    const recomendaciones = String(req.body.recomendaciones || '').trim();
+    const hallazgos = sanitizeNarrativeJson(req.body.hallazgos);
+    const recomendaciones = sanitizeNarrativeJson(req.body.recomendaciones);
 
     const auditoria = await getAsync(
       `SELECT * FROM auditorias WHERE id = ? AND activa = 1`,
@@ -879,12 +888,12 @@ router.patch('/:auditoria_id/cierre-borrador', async (req, res) => {
       [hallazgos, recomendaciones, auditoria_id]
     );
 
-    const auditoriaActualizada = await getAsync(
+    const auditoriaActualizada = sanitizeAuditNarratives(await getAsync(
       `SELECT a.*, u.nombre as auditor_nombre FROM auditorias a
        LEFT JOIN auditores u ON a.auditor_id = u.id
        WHERE a.id = ? AND a.activa = 1`,
       [auditoria_id]
-    );
+    ));
 
     res.json({ mensaje: 'Borrador de cierre guardado', auditoria: auditoriaActualizada });
   } catch (error) {
